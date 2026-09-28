@@ -7,7 +7,7 @@ export type NodeType = 'Root' | 'Frame' | 'Text' | 'Image' | 'SVG' | 'Component'
 export type Framework = 'react' | 'vue'
 
 /** Points at a component exported from the linked codebase. */
-export interface ComponentRef {
+interface ComponentRef {
   /** `<relative file>#<export name>` */
   id: string
   name: string
@@ -15,6 +15,16 @@ export interface ComponentRef {
 }
 
 export type StyleValue = string | number
+
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | undefined
+  | JsonValue[]
+  | { [key: string]: JsonValue }
+
 export type Styles = Record<string, StyleValue>
 
 export interface PNode {
@@ -32,7 +42,7 @@ export interface PNode {
   svg?: string
   /** Component nodes: which component, its props, and children markup. */
   component?: ComponentRef
-  props?: Record<string, unknown>
+  props?: Record<string, JsonValue>
   content?: string
   parent: string | null
   children: string[]
@@ -88,7 +98,7 @@ export interface FontFaceDef {
   unicodeRange?: string
 }
 
-export interface CommentMessage {
+interface CommentMessage {
   id: string
   authorId: string
   authorName: string
@@ -96,7 +106,7 @@ export interface CommentMessage {
   createdAt: string
 }
 
-export interface CommentThread {
+interface CommentThread {
   id: string
   pageId: string
   nodeId: string | null
@@ -147,7 +157,9 @@ export interface CheckoutInfo {
 }
 
 /** What the editor is looking at within a project. */
-export type ProjectView = { kind: 'checkout'; path: string; branch: string | null; main: boolean } | { kind: 'branch'; branch: string }
+export type ProjectView =
+  | { kind: 'checkout'; path: string; branch: string | null; main: boolean }
+  | { kind: 'branch'; branch: string }
 
 /** A folder whose design/ holds .paperish files: a repo, or the built-in Scratch. */
 export interface ProjectInfo {
@@ -161,7 +173,19 @@ export interface ProjectInfo {
   mcp: string
 }
 
-type PatchKey = 'name' | 'text' | 'src' | 'svg' | 'hidden' | 'locked' | 'tag' | 'attrs' | 'props' | 'content' | 'component'
+export type PatchKey =
+  | 'name'
+  | 'text'
+  | 'src'
+  | 'svg'
+  | 'hidden'
+  | 'locked'
+  | 'tag'
+  | 'attrs'
+  | 'props'
+  | 'content'
+  | 'component'
+
 /** null removes the field. */
 export type NodePatch = { [K in PatchKey]?: PNode[K] | null }
 

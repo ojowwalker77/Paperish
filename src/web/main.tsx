@@ -9,9 +9,14 @@ import './styles.css'
 const fileId = new URLSearchParams(location.search).get('file')
 
 // Inside the desktop app the top bar doubles as the window's title bar.
-if (navigator.userAgent.includes('Electron')) document.documentElement.classList.add('app', /Mac/.test(navigator.platform) ? 'app-mac' : 'app-other')
+if (navigator.userAgent.includes('Electron'))
+  document.documentElement.classList.add(
+    'app',
+    /Mac/.test(navigator.platform) ? 'app-mac' : 'app-other',
+  )
 
 await loadIndex()
+
 store.connect(fileId)
 
 if (ENGINE_MODE) {

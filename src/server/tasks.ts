@@ -13,9 +13,17 @@ export async function runImport(
   origin: Origin,
   token?: string,
 ): Promise<{ rootId: string; result: ImportResult }> {
-  const task: TaskState = { id: randomBytes(4).toString('hex'), label: `Importing ${hostOf(opts.url)}`, pct: 0, status: 'running', origin: token }
+  const task: TaskState = {
+    id: randomBytes(4).toString('hex'),
+    label: `Importing ${hostOf(opts.url)}`,
+    pct: 0,
+    status: 'running',
+    origin: token,
+  }
+
   const push = () => f.broadcast({ t: 'task', task: { ...task } })
   push()
+
   try {
     const result = await importUrl(f, {
       ...opts,
@@ -25,19 +33,33 @@ export async function runImport(
         push()
       },
     })
+
     const place = await findPlacement(f)
     const root = f.doc.nodes[f.page.rootId]
     const top = result.nodes[0]
     top.parent = root.id
     top.styles = { ...top.styles, left: `${place.left}px`, top: `${place.top}px` }
-    const ops: Op[] = [{ t: 'insert', parentId: root.id, index: root.children.length, nodes: result.nodes }]
-    if (result.fontFaces.length) ops.push({ t: 'fontFaces', fontFaces: mergeFontFaces(f.doc.fontFaces, result.fontFaces) })
+
+    const ops: Op[] = [
+      { t: 'insert', parentId: root.id, index: root.children.length, nodes: result.nodes },
+    ]
+
+    if (result.fontFaces.length)
+      ops.push({ t: 'fontFaces', fontFaces: mergeFontFaces(f.doc.fontFaces, result.fontFaces) })
     f.transact(ops, origin, 'import url')
     f.broadcast({ t: 'reveal', ids: [top.id] })
-    Object.assign(task, { status: 'done', pct: 100, label: `Imported ${hostOf(opts.url)}`, ids: [top.id], message: `${result.stats.layers} layers · ${result.stats.images} images · ${result.stats.fonts} fonts` })
+    Object.assign(task, {
+      status: 'done',
+      pct: 100,
+      label: `Imported ${hostOf(opts.url)}`,
+      ids: [top.id],
+      message: `${result.stats.layers} layers · ${result.stats.images} images · ${result.stats.fonts} fonts`,
+    })
     push()
+
     return { rootId: top.id, result }
   } catch (e) {
+    // SAFETY: importUrl, findPlacement and transact reject with Error instances.
     Object.assign(task, { status: 'error', message: (e as Error).message.split('\n')[0] })
     push()
     throw e

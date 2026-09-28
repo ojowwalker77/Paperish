@@ -1,0 +1,12 @@
+{
+  "$schema": "https://unpkg.com/knip@6.38.0/schema.json",
+  "entry": ["src/app/main.ts", "scripts/*.ts"],
+  "project": ["src/**/*", "scripts/**/*"],
+  "ignore": ["tools/**", "src/server/import/extract.js"],
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "exports": "error",
+    "types": "error"
+  }
+}

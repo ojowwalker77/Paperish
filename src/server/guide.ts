@@ -102,8 +102,26 @@ const MOBILE_STATUS_BAR = `Paste this as the first child of a 390px-wide mobile 
   </div>
 </div>`
 
-export const GUIDES: Record<string, { summary: string; body: string }> = {
-  'paperish-instructions': { summary: 'Full workflow and design-quality guide. Read once per session.', body: INSTRUCTIONS },
-  'paper-mcp-instructions': { summary: 'Alias of paperish-instructions (Paper compatibility).', body: INSTRUCTIONS },
-  'mobile-status-bar': { summary: 'Paste-ready iOS status bar markup for mobile artboards.', body: MOBILE_STATUS_BAR },
+interface GuideEntry {
+  summary: string
+  body: string
+}
+
+interface GuideMap {
+  [topic: string]: GuideEntry
+}
+
+export const GUIDES: GuideMap = {
+  'paperish-instructions': {
+    summary: 'Full workflow and design-quality guide. Read once per session.',
+    body: INSTRUCTIONS,
+  },
+  'paper-mcp-instructions': {
+    summary: 'Alias of paperish-instructions (Paper compatibility).',
+    body: INSTRUCTIONS,
+  },
+  'mobile-status-bar': {
+    summary: 'Paste-ready iOS status bar markup for mobile artboards.',
+    body: MOBILE_STATUS_BAR,
+  },
 }

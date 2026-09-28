@@ -4,7 +4,9 @@
    Copyright (c) 2026 liquidframe contributors, MIT License — see THIRD_PARTY_NOTICES.md.
    Generalized here to per-device sizes, cutouts and foldables. */
 
-.pw-device-wrap { padding: 10px; }
+.pw-device-wrap {
+  padding: 10px;
+}
 
 .pw-device {
   --edge: #a69f96;
@@ -23,7 +25,11 @@
     0 0 0 2px rgba(0, 0, 0, 0.3),
     inset 0 0 0 1px var(--edge-highlight),
     inset 0 0 6px rgba(0, 0, 0, 0.85);
-  transition: width .35s cubic-bezier(.3,.7,.3,1), height .35s cubic-bezier(.3,.7,.3,1), border-radius .35s ease, box-shadow .3s ease;
+  transition:
+    width 0.35s cubic-bezier(0.3, 0.7, 0.3, 1),
+    height 0.35s cubic-bezier(0.3, 0.7, 0.3, 1),
+    border-radius 0.35s ease,
+    box-shadow 0.3s ease;
 }
 
 .pw-device-btn {
@@ -31,14 +37,33 @@
   z-index: 3;
   background: var(--edge);
   width: 3px;
-  box-shadow: -1px 0 2px rgba(0, 0, 0, 0.4), inset 1px 0 1px var(--edge-highlight);
-  transition: background .3s ease;
+  box-shadow:
+    -1px 0 2px rgba(0, 0, 0, 0.4),
+    inset 1px 0 1px var(--edge-highlight);
+  transition: background 0.3s ease;
 }
-.pw-device-btn.left { border-radius: 3px 0 0 3px; }
-.pw-device-btn.right { border-radius: 0 3px 3px 0; box-shadow: 1px 0 2px rgba(0, 0, 0, 0.4), inset -1px 0 1px var(--edge-highlight); }
-.pw-device-btn.top { height: 3px; width: auto; border-radius: 3px 3px 0 0; box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.4), inset 0 1px 1px var(--edge-highlight); }
+.pw-device-btn.left {
+  border-radius: 3px 0 0 3px;
+}
+.pw-device-btn.right {
+  border-radius: 0 3px 3px 0;
+  box-shadow:
+    1px 0 2px rgba(0, 0, 0, 0.4),
+    inset -1px 0 1px var(--edge-highlight);
+}
+.pw-device-btn.top {
+  height: 3px;
+  width: auto;
+  border-radius: 3px 3px 0 0;
+  box-shadow:
+    0 -1px 2px rgba(0, 0, 0, 0.4),
+    inset 0 1px 1px var(--edge-highlight);
+}
 /* Camera Control sits flush in a sapphire-covered recess. */
-.pw-device-btn.camera-control { background: linear-gradient(90deg, var(--edge-inner), #1d1d1f); width: 2px; }
+.pw-device-btn.camera-control {
+  background: linear-gradient(90deg, var(--edge-inner), #1d1d1f);
+  width: 2px;
+}
 
 .pw-device-screen {
   position: absolute;
@@ -58,9 +83,12 @@
   corner-shape: squircle;
   user-select: text;
 }
-.pw-device-scroll::-webkit-scrollbar { display: none; }
+.pw-device-scroll::-webkit-scrollbar {
+  display: none;
+}
 
-.pw-device-island, .pw-device-hole {
+.pw-device-island,
+.pw-device-hole {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -82,7 +110,9 @@
   background: radial-gradient(circle, #0a2540 10%, #000 80%);
   opacity: 0.55;
 }
-.pw-device-hole { background: radial-gradient(circle at 40% 40%, #1c2a3a 0%, #000 55%); }
+.pw-device-hole {
+  background: radial-gradient(circle at 40% 40%, #1c2a3a 0%, #000 55%);
+}
 
 .pw-device-status {
   position: absolute;
@@ -93,14 +123,30 @@
   display: grid;
   align-items: center;
   pointer-events: none;
-  font: 600 17px/1 -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  font:
+    600 17px/1 -apple-system,
+    'SF Pro Text',
+    system-ui,
+    sans-serif;
   letter-spacing: -0.01em;
-  transition: color .25s ease;
+  transition: color 0.25s ease;
 }
-.pw-device-status.island > * { justify-self: center; }
-.pw-device-icons { display: inline-flex; align-items: center; gap: 6px; }
-.pw-device.tone-dark .pw-device-status, .pw-device.tone-dark .pw-device-home { color: #000; }
-.pw-device.tone-light .pw-device-status, .pw-device.tone-light .pw-device-home { color: #fff; }
+.pw-device-status.island > * {
+  justify-self: center;
+}
+.pw-device-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.pw-device.tone-dark .pw-device-status,
+.pw-device.tone-dark .pw-device-home {
+  color: #000;
+}
+.pw-device.tone-light .pw-device-status,
+.pw-device.tone-light .pw-device-home {
+  color: #fff;
+}
 
 .pw-device-home {
   position: absolute;
@@ -123,7 +169,14 @@
   transform: translateX(-50%);
   z-index: 10;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.025) 40%, rgba(255,255,255,.035) 50%, rgba(0,0,0,.025) 60%, rgba(0,0,0,0) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.025) 40%,
+    rgba(255, 255, 255, 0.035) 50%,
+    rgba(0, 0, 0, 0.025) 60%,
+    rgba(0, 0, 0, 0) 100%
+  );
 }
 
 /* iOS 26 Safari "Compact" layout: [◁] [▢ url ↻] [···] */
@@ -151,13 +204,26 @@
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
-.pw-glass.circle { width: 44px; border-radius: 50%; flex-shrink: 0; }
-.pw-glass.pill { flex: 1; min-width: 0; border-radius: 99px; padding: 0 14px; gap: 8px; }
+.pw-glass.circle {
+  width: 44px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pw-glass.pill {
+  flex: 1;
+  min-width: 0;
+  border-radius: 99px;
+  padding: 0 14px;
+  gap: 8px;
+}
 .pw-safari-url {
   flex: 1;
   min-width: 0;
   text-align: center;
-  font: 500 14px/1 -apple-system, system-ui, sans-serif;
+  font:
+    500 14px/1 -apple-system,
+    system-ui,
+    sans-serif;
   letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;

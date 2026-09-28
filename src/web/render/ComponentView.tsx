@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import { parseMarkup } from '../../shared/markup'
 import type { PNode } from '../../shared/types'
 import { useStore } from '../store'
@@ -13,14 +21,20 @@ export const InteractiveContext = createContext(false)
 
 const INTRINSIC = new Set(['fit-content', 'auto', 'max-content', 'min-content'])
 
-export function hasExplicitWidth(styles: PNode['styles']): boolean {
+function hasExplicitWidth(styles: PNode['styles']): boolean {
   const w = styles.width
-  return w !== undefined && !INTRINSIC.has(String(w)) || styles.flexGrow !== undefined && Number(styles.flexGrow) > 0 || styles.flex !== undefined
+
+  return (
+    (w !== undefined && !INTRINSIC.has(String(w))) ||
+    (styles.flexGrow !== undefined && Number(styles.flexGrow) > 0) ||
+    styles.flex !== undefined
+  )
 }
 
 /** An explicit height makes the instance a fixed-size viewport (e.g. a full screen). */
 function hasExplicitHeight(styles: PNode['styles']): boolean {
   const h = styles.height
+
   return h !== undefined && !INTRINSIC.has(String(h))
 }
 
@@ -38,20 +52,34 @@ export function ComponentView({ n, style }: { n: PNode; style: CSSProperties }) 
   const fillHeight = hasExplicitHeight(n.styles)
   const components = project?.components
   const parsed = useMemo(() => parseMarkup(n.content, components ?? []), [n.content, components])
+
   const payload = useMemo(
-    () => ({ type: 'pw:render', component: n.component?.id, props: n.props ?? {}, tree: parsed.nodes, refs: parsed.refs, fill }),
+    () => ({
+      type: 'pw:render',
+      component: n.component?.id,
+      props: n.props ?? {},
+      tree: parsed.nodes,
+      refs: parsed.refs,
+      fill,
+    }),
     [n.component?.id, n.props, parsed, fill],
   )
+
   const latest = useRef(payload)
   latest.current = payload
 
   useEffect(() => {
     ready.current = false
+
     if (!origin) return
+
     const onMsg = (e: MessageEvent) => {
       const win = frame.current?.contentWindow
+
       if (!win || e.source !== win || !e.data?.__paperish) return
+      // SAFETY: checked e.source is our iframe and __paperish flag; host only sends pw:* render messages.
       const d = e.data as { type: string; w?: number; h?: number; message?: string }
+
       if (d.type === 'pw:ready') {
         ready.current = true
         win.postMessage(latest.current, origin)
@@ -64,7 +92,9 @@ export function ComponentView({ n, style }: { n: PNode; style: CSSProperties }) 
         setError(d.message ?? 'Render error')
       }
     }
+
     window.addEventListener('message', onMsg)
+
     return () => window.removeEventListener('message', onMsg)
   }, [origin])
 
@@ -75,13 +105,25 @@ export function ComponentView({ n, style }: { n: PNode; style: CSSProperties }) 
   const wrapper: CSSProperties = {
     ...style,
     position: style.position ?? 'relative',
-    ...(fill ? {} : { width: style.width ?? 'fit-content' }),
   }
 
+  if (!fill) wrapper.width = style.width ?? 'fit-content'
+
   if (!origin) {
-    const label = !project ? 'Codebase not linked' : project.status === 'error' ? `Codebase error: ${project.error}` : 'Starting codebase…'
+    const label = !project
+      ? 'Codebase not linked'
+      : project.status === 'error'
+        ? `Codebase error: ${project.error}`
+        : 'Starting codebase…'
+
     return (
-      <div data-pid={n.id} data-component-state={project?.status === 'starting' ? 'loading' : 'error'} className="pw-comp-placeholder" style={wrapper} title={label}>
+      <div
+        data-pid={n.id}
+        data-component-state={project?.status === 'starting' ? 'loading' : 'error'}
+        className="pw-comp-placeholder"
+        style={wrapper}
+        title={label}
+      >
         <span className="pw-comp-name">{n.component?.name ?? n.name}</span>
         <span className="pw-comp-note">{label}</span>
       </div>

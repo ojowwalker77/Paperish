@@ -1,5 +1,9 @@
 # Third-party notices
 
+## anti-slop
+
+Lint rules vendored under `tools/oxlint/anti-slop/` from [anti-slop](https://github.com/dmmulroy/anti-slop) (MIT), including its vendored copy of ESLint Stylistic (`tools/oxlint/anti-slop/vendor/eslint-stylistic/`, MIT, see `LICENSE` and `UPSTREAM.md` there).
+
 ## liquidframe
 
 The device shell in `src/web/device-shell.css` and `src/web/DeviceShell.tsx` (frame, Dynamic Island, side buttons, status bar icons and the iOS 26 Liquid Glass Safari bar) is adapted from [liquidframe](https://github.com/CVERInc/liquidframe).

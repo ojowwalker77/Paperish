@@ -38,6 +38,7 @@ export function StatusBar() {
 function AgentActivity() {
   const working = useStore((s) => s.working.length)
   const elsewhere = useStore((s) => s.agentElsewhere)
+
   return (
     <>
       {working > 0 && (
@@ -47,7 +48,11 @@ function AgentActivity() {
         </span>
       )}
       {elsewhere && (
-        <button className="pw-status-item pw-status-agent" title={elsewhere.checkout} onClick={() => store.send({ t: 'openCheckout', checkout: elsewhere.checkout })}>
+        <button
+          className="pw-status-item pw-status-agent"
+          title={elsewhere.checkout}
+          onClick={() => store.send({ t: 'openCheckout', checkout: elsewhere.checkout })}
+        >
           <span className="pw-agent-dot" />
           Agent in <code>{elsewhere.branch ?? elsewhere.checkout.split('/').pop()}</code>
           <span className="pw-status-link">View</span>
@@ -60,13 +65,16 @@ function AgentActivity() {
 function Problems() {
   const connected = useStore((s) => s.connected)
   const error = useStore((s) => s.error)
+
   if (!connected) return <span className="pw-status-item warn">Reconnecting…</span>
+
   if (error)
     return (
       <span className="pw-status-item error" title={error}>
         {error}
       </span>
     )
+
   return null
 }
 
@@ -76,10 +84,12 @@ function SelectionPath() {
   const nodes = useStore((s) => s.doc?.nodes)
   const inspecting = useStore((s) => s.inspectOpen)
   const rects = useWorldRects(ids.length === 1 ? ids : [])
+
   if (!ids.length || !nodes) return null
   const path = ids.length === 1 ? pathTo(ids[0]) : []
   const shown = path.length > 4 ? path.slice(-4) : path
   const r = ids.length === 1 ? rects[ids[0]] : undefined
+
   return (
     <>
       {ids.length === 1 && (
@@ -99,7 +109,11 @@ function SelectionPath() {
           ))}
         </span>
       )}
-      <button className={`pw-status-item mono ${inspecting ? 'on' : ''}`} title="Inspect (I)" onClick={() => store.setInspectOpen(!inspecting)}>
+      <button
+        className={`pw-status-item mono ${inspecting ? 'on' : ''}`}
+        title="Inspect (I)"
+        onClick={() => store.setInspectOpen(!inspecting)}
+      >
         {r ? `${Math.round(r.width)} × ${Math.round(r.height)}` : `${ids.length} selected`}
       </button>
     </>
@@ -113,15 +127,22 @@ function Tokens() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useOutside(ref, () => setOpen(false))
+
   if (!tokens?.length) return null
   const colors = tokens.filter((t) => t.type === 'color').slice(0, 4)
+
   const set = (name: string, value: string) => {
     const next = tokens.map((t) => (t.name === name ? { ...t, value } : t))
     store.tx([{ t: 'tokens', tokens: next }], `set ${name}`)
   }
+
   return (
     <div className="pw-file-menu" ref={ref}>
-      <button className={`pw-status-item ${open ? 'on' : ''}`} title="Design tokens" onClick={() => setOpen(!open)}>
+      <button
+        className={`pw-status-item ${open ? 'on' : ''}`}
+        title="Design tokens"
+        onClick={() => setOpen(!open)}
+      >
         {colors.length ? (
           <span className="pw-token-dots">
             {colors.map((t) => (
@@ -144,16 +165,38 @@ function Tokens() {
   )
 }
 
-function TokenRow({ token: t, readOnly, onSet }: { token: Token; readOnly: boolean; onSet: (v: string) => void }) {
+function TokenRow({
+  token: t,
+  readOnly,
+  onSet,
+}: {
+  token: Token
+  readOnly: boolean
+  onSet: (v: string) => void
+}) {
   const value = String(t.value)
   const resolved = resolveToken(value)
-  const hex = /^#[0-9a-f]{6}$/i.test(resolved) ? resolved : /^#[0-9a-f]{3}$/i.test(resolved) ? '#' + [...resolved.slice(1)].map((c) => c + c).join('') : null
+
+  const hex = /^#[0-9a-f]{6}$/i.test(resolved)
+    ? resolved
+    : /^#[0-9a-f]{3}$/i.test(resolved)
+      ? '#' +
+        resolved
+          .slice(1)
+          .split('')
+          .map((c) => c + c)
+          .join('')
+      : null
+
   const commit = (v: string) => v.trim() && v.trim() !== value && onSet(v.trim())
+
   return (
     <label className="pw-token-row" title={t.description}>
       {t.type === 'color' ? (
         <span className="pw-token-swatch" style={{ background: resolved }}>
-          {hex && !readOnly && <input type="color" value={hex} onChange={(e) => onSet(e.target.value)} />}
+          {hex && !readOnly && (
+            <input type="color" value={hex} onChange={(e) => onSet(e.target.value)} />
+          )}
         </span>
       ) : (
         <span className="pw-token-type">{t.type.slice(0, 2)}</span>
@@ -168,10 +211,13 @@ function TokenRow({ token: t, readOnly, onSet }: { token: Token; readOnly: boole
         onBlur={(e) => commit(e.currentTarget.value)}
         onKeyDown={(e) => {
           e.stopPropagation()
+
           if (e.key === 'Enter') e.currentTarget.blur()
+
           if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
             // Nudge the number, keeping the unit: 12px → 13px (Shift: ±10).
             const m = e.currentTarget.value.match(/^(-?\d*\.?\d+)(.*)$/)
+
             if (!m) return
             e.preventDefault()
             const step = (e.key === 'ArrowUp' ? 1 : -1) * (e.shiftKey ? 10 : 1)
@@ -189,7 +235,9 @@ function TokenRow({ token: t, readOnly, onSet }: { token: Token; readOnly: boole
 function Codebase() {
   const linked = useStore((s) => s.doc?.project?.root)
   const p = useStore((s) => s.project)
+
   if (!linked) return null
+
   const label =
     !p || p.status === 'starting'
       ? 'Starting codebase…'
@@ -197,9 +245,14 @@ function Codebase() {
         ? 'Codebase error'
         : !p.components.length && !p.tailwind
           ? 'No components'
-          : [p.frameworks.map((f) => (f === 'react' ? 'React' : 'Vue')).join(' + '), p.tailwind && `Tailwind ${p.tailwind.split('.')[0]}`, `${p.components.length} components`]
+          : [
+              p.frameworks.map((f) => (f === 'react' ? 'React' : 'Vue')).join(' + '),
+              p.tailwind && `Tailwind ${p.tailwind.split('.')[0]}`,
+              `${p.components.length} components`,
+            ]
               .filter(Boolean)
               .join(' · ')
+
   return (
     <button
       className={`pw-status-item ${p?.status === 'error' ? 'error' : ''}`}
@@ -215,10 +268,13 @@ function Codebase() {
 function Mcp() {
   const info = useStore((s) => s.projectInfo)
   const [copied, setCopied] = useState(false)
+
   if (!info) return null
+
   const title = info.scratch
     ? `MCP endpoint for Scratch: ${info.mcp}\nClick to copy`
     : `MCP endpoint: ${info.mcp}\nClaude Code picks it up from the repo's .mcp.json. Click to copy.`
+
   return (
     <button
       className="pw-status-item"
@@ -239,6 +295,7 @@ function ZoomMenu() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useOutside(ref, () => setOpen(false))
+
   const item = (label: string, hint: string, fn: () => void) => (
     <button
       className="pw-menu-item"
@@ -251,6 +308,7 @@ function ZoomMenu() {
       <span className="pw-menu-meta">{hint}</span>
     </button>
   )
+
   return (
     <div className="pw-file-menu" ref={ref}>
       <button className="pw-status-item pw-zoom" title="Zoom" onClick={() => setOpen(!open)}>
@@ -291,9 +349,15 @@ function HelpMenu() {
   const open = useStore((s) => s.helpOpen)
   const ref = useRef<HTMLDivElement>(null)
   useOutside(ref, () => open && store.setHelpOpen(false))
+
   return (
     <div className="pw-file-menu" ref={ref}>
-      <button className={`pw-status-item pw-help ${open ? 'on' : ''}`} title="Keyboard shortcuts (?)" aria-expanded={open} onClick={() => store.setHelpOpen(!open)}>
+      <button
+        className={`pw-status-item pw-help ${open ? 'on' : ''}`}
+        title="Keyboard shortcuts (?)"
+        aria-expanded={open}
+        onClick={() => store.setHelpOpen(!open)}
+      >
         ?
       </button>
       {open && (
@@ -311,4 +375,3 @@ function HelpMenu() {
     </div>
   )
 }
-

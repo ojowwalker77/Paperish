@@ -13,11 +13,14 @@ export function fontFaceCss(faces: FontFaceDef[] | undefined): string {
 export function mergeFontFaces(a: FontFaceDef[] | undefined, b: FontFaceDef[]): FontFaceDef[] {
   const seen = new Set<string>()
   const out: FontFaceDef[] = []
+
   for (const f of [...(a ?? []), ...b]) {
     const key = `${f.family}|${f.weight ?? ''}|${f.style ?? ''}|${f.unicodeRange ?? ''}`
+
     if (seen.has(key)) continue
     seen.add(key)
     out.push(f)
   }
+
   return out
 }

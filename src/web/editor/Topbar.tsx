@@ -23,7 +23,11 @@ export function Topbar() {
         <PageMenu />
       </div>
 
-      <button className="pw-command" title="Find anything, run anything (⌘K)" onClick={() => store.openPalette()}>
+      <button
+        className="pw-command"
+        title="Find anything, run anything (⌘K)"
+        onClick={() => store.openPalette()}
+      >
         <Icon.Search size={13} />
         <span>{project ? `Search ${project}` : 'Search'}</span>
         <kbd>⌘K</kbd>
@@ -32,12 +36,23 @@ export function Topbar() {
       <div className="pw-topbar-right">
         <div className="pw-tools" role="toolbar" aria-label="Tools">
           {TOOLS.map((t) => (
-            <button key={t.id} className={`pw-tool ${tool === t.id ? 'active' : ''}`} title={`${t.label} (${t.key})`} aria-pressed={tool === t.id} onClick={() => store.setTool(t.id)}>
+            <button
+              key={t.id}
+              className={`pw-tool ${tool === t.id ? 'active' : ''}`}
+              title={`${t.label} (${t.key})`}
+              aria-pressed={tool === t.id}
+              onClick={() => store.setTool(t.id)}
+            >
               {t.icon}
             </button>
           ))}
         </div>
-        <button className="pw-preview-btn" title="Preview frame as a full page (P)" disabled={!hasFrames} onClick={openPreview}>
+        <button
+          className="pw-preview-btn"
+          title="Preview frame as a full page (P)"
+          disabled={!hasFrames}
+          onClick={openPreview}
+        >
           Preview
         </button>
       </div>
@@ -54,7 +69,9 @@ function PageMenu() {
   const [renaming, setRenaming] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useOutside(ref, () => setOpen(false))
+
   if (!page) return null
+
   return (
     <div className="pw-file-menu" ref={ref}>
       {renaming ? (
@@ -62,11 +79,18 @@ function PageMenu() {
           value={page.name}
           onDone={(v) => {
             setRenaming(false)
-            if (v && v !== page.name) store.tx([{ t: 'page:rename', pageId: page.id, name: v }], 'rename page')
+
+            if (v && v !== page.name)
+              store.tx([{ t: 'page:rename', pageId: page.id, name: v }], 'rename page')
           }}
         />
       ) : (
-        <button className="pw-crumb-btn" onClick={() => setOpen(!open)} onDoubleClick={() => setRenaming(true)} title="Pages (double-click to rename)">
+        <button
+          className="pw-crumb-btn"
+          onClick={() => setOpen(!open)}
+          onDoubleClick={() => setRenaming(true)}
+          title="Pages (double-click to rename)"
+        >
           <span className="pw-crumb-sep">/</span>
           {page.name}
         </button>
@@ -79,6 +103,7 @@ function PageMenu() {
               className={`pw-menu-item ${p.id === pageId ? 'active' : ''}`}
               onClick={() => {
                 setOpen(false)
+
                 if (p.id !== pageId) store.setPage(p.id)
               }}
             >
@@ -102,7 +127,11 @@ function PageMenu() {
 }
 
 function FileMenu() {
-  const doc = useStore((s) => (s.doc ? { id: s.doc.id, name: s.doc.name } : null), (a, b) => a?.id === b?.id && a?.name === b?.name)
+  const doc = useStore(
+    (s) => (s.doc ? { id: s.doc.id, name: s.doc.name } : null),
+    (a, b) => a?.id === b?.id && a?.name === b?.name,
+  )
+
   const files = useStore((s) => s.files)
   const projectName = useStore((s) => s.projectInfo?.name)
   const inGit = useStore((s) => !!s.repo?.root)
@@ -115,7 +144,9 @@ function FileMenu() {
     setOpen(false)
     setConfirming(null)
   })
+
   if (!doc) return <span className="pw-file-name">Loading…</span>
+
   return (
     <div className="pw-file-menu" ref={ref}>
       {renaming ? (
@@ -123,11 +154,17 @@ function FileMenu() {
           value={doc.name}
           onDone={(v) => {
             setRenaming(false)
+
             if (v && v !== doc.name) store.tx([{ t: 'doc:rename', name: v }], 'rename file')
           }}
         />
       ) : (
-        <button className="pw-file-name" onClick={() => setOpen(!open)} onDoubleClick={() => setRenaming(true)} title="Double-click to rename">
+        <button
+          className="pw-file-name"
+          onClick={() => setOpen(!open)}
+          onDoubleClick={() => setRenaming(true)}
+          title="Double-click to rename"
+        >
           {projectName && (
             <>
               <span className="pw-file-project">{projectName}</span>
@@ -181,12 +218,17 @@ function FileMenu() {
                 </button>
               </div>
             ) : (
-              <div key={f.id} className={`pw-menu-item pw-file-row ${f.id === doc.id ? 'active' : ''}`}>
+              <div
+                key={f.id}
+                className={`pw-menu-item pw-file-row ${f.id === doc.id ? 'active' : ''}`}
+              >
                 <button
                   className="pw-file-open"
                   onClick={() => {
                     setOpen(false)
+
                     if (f.id === doc.id) return
+
                     if (f.ref) store.send({ t: 'openBranch', branch: f.ref.branch, rel: f.ref.rel })
                     else store.send({ t: 'open', fileId: f.id })
                   }}
@@ -198,7 +240,12 @@ function FileMenu() {
                   <span className="pw-menu-meta">{f.updatedAt ? timeAgo(f.updatedAt) : ''}</span>
                 </button>
                 {!f.ref && (
-                  <button className="pw-file-trash" title="Delete file" aria-label={`Delete ${f.name}`} onClick={() => setConfirming(f.id)}>
+                  <button
+                    className="pw-file-trash"
+                    title="Delete file"
+                    aria-label={`Delete ${f.name}`}
+                    onClick={() => setConfirming(f.id)}
+                  >
                     <Icon.Trash />
                   </button>
                 )}
@@ -223,16 +270,22 @@ function FileMenu() {
 
 export function useOutside(ref: React.RefObject<HTMLElement | null>, fn: () => void) {
   useEffect(() => {
+    // SAFETY: pointerdown target for outside-click is a node; contains checks menu membership.
     const h = (e: PointerEvent) => ref.current && !ref.current.contains(e.target as Node) && fn()
     window.addEventListener('pointerdown', h)
+
     return () => window.removeEventListener('pointerdown', h)
   })
 }
 
 export function timeAgo(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000
+
   if (s < 60) return 'just now'
+
   if (s < 3600) return `${Math.floor(s / 60)}m ago`
+
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+
   return `${Math.floor(s / 86400)}d ago`
 }

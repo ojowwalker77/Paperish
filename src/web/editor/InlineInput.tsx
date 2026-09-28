@@ -11,10 +11,12 @@ export function InlineInput({ value, onDone }: { value: string; onDone: (v: stri
       onBlur={(e) => onDone(e.currentTarget.value.trim())}
       onKeyDown={(e) => {
         if (e.key === 'Enter') e.currentTarget.blur()
+
         if (e.key === 'Escape') {
           e.currentTarget.value = value
           e.currentTarget.blur()
         }
+
         e.stopPropagation()
       }}
     />

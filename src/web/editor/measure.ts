@@ -20,10 +20,13 @@ export function useWorldRects(ids: readonly string[]): Rects {
 
   useLayoutEffect(() => {
     const list = key ? key.split('\n') : []
+
     if (!list.length) {
       setRects(EMPTY)
+
       return
     }
+
     let raf = 0
     let sig = ''
     const observed = new Set<Element>()
@@ -33,31 +36,41 @@ export function useWorldRects(ids: readonly string[]): Rects {
       raf = 0
       const next: Rects = {}
       let s = ''
+
       for (const id of list) {
         const el = nodeEl(id)
+
         if (!el) continue
+
         if (!observed.has(el)) {
           observed.add(el)
           ro.observe(el)
         }
+
         const r = worldRectOf(el)
+
         if (!r) continue
         next[id] = r
         s += `${id}:${r.x.toFixed(2)},${r.y.toFixed(2)},${r.width.toFixed(2)},${r.height.toFixed(2)};`
       }
+
       if (s === sig) return
       sig = s
+
       // From rAF, commit before this frame paints so outlines never trail.
       if (inLayoutEffect) setRects(next)
       else flushSync(() => setRects(next))
     }
+
     const schedule = () => {
       if (!raf) raf = requestAnimationFrame(() => measure(false))
     }
 
     const world = document.querySelector('.pw-canvas .pw-world')
     const mo = new MutationObserver(schedule)
-    if (world) mo.observe(world, { subtree: true, childList: true, attributes: true, characterData: true })
+
+    if (world)
+      mo.observe(world, { subtree: true, childList: true, attributes: true, characterData: true })
     world?.addEventListener('load', schedule, true)
     document.fonts.addEventListener('loadingdone', schedule)
     measure(true)

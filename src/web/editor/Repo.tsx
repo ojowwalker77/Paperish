@@ -27,21 +27,36 @@ export function BranchPicker() {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useOutside(ref, () => setOpen(false))
+
   if (!view) return null
   const readOnly = view.kind === 'branch'
+
   if (!readOnly && !repo?.root) return null // Scratch, or a project that isn't a git repo
   const branch = view.branch ?? 'detached'
-  const title = readOnly ? `${branch} as committed (read-only)` : `${repo!.path}\n${repo!.problem ?? STATE_LABEL[repo!.state]}`
+
+  const title = readOnly
+    ? `${branch} as committed (read-only)`
+    : `${repo!.path}\n${repo!.problem ?? STATE_LABEL[repo!.state]}`
+
   const pick = (fn: () => void) => () => {
     setOpen(false)
     fn()
   }
+
   return (
     <div className="pw-file-menu" ref={ref}>
-      <button className={`pw-status-item pw-branch ${readOnly ? 'readonly' : ''}`} title={title} onClick={() => setOpen(!open)}>
+      <button
+        className={`pw-status-item pw-branch ${readOnly ? 'readonly' : ''}`}
+        title={title}
+        onClick={() => setOpen(!open)}
+      >
         <Icon.Branch size={13} />
         <code>{branch}</code>
-        {readOnly ? <span>read-only</span> : <span className={`pw-repo-dot ${repo!.problem ? 'problem' : repo!.state}`} />}
+        {readOnly ? (
+          <span>read-only</span>
+        ) : (
+          <span className={`pw-repo-dot ${repo!.problem ? 'problem' : repo!.state}`} />
+        )}
         {view.kind === 'checkout' && !view.main && <span className="pw-branch-kind">worktree</span>}
       </button>
       {open && (
@@ -57,11 +72,21 @@ export function BranchPicker() {
           <div className="pw-menu-head">Checkouts</div>
           {checkouts.map((c) => {
             const current = view.kind === 'checkout' && view.path === c.path
+
             return (
-              <button key={c.path} className={`pw-menu-item pw-checkout ${current ? 'active' : ''}`} title={c.path} onClick={pick(() => !current && store.send({ t: 'openCheckout', checkout: c.path }))}>
+              <button
+                key={c.path}
+                className={`pw-menu-item pw-checkout ${current ? 'active' : ''}`}
+                title={c.path}
+                onClick={pick(
+                  () => !current && store.send({ t: 'openCheckout', checkout: c.path }),
+                )}
+              >
                 <span className="pw-checkout-text">
                   <span className="pw-checkout-branch">{c.branch ?? 'detached'}</span>
-                  <span className="pw-checkout-path">{c.main ? 'main checkout' : `worktree · ${c.path.split('/').pop()}`}</span>
+                  <span className="pw-checkout-path">
+                    {c.main ? 'main checkout' : `worktree · ${c.path.split('/').pop()}`}
+                  </span>
                 </span>
                 <span className="pw-menu-meta">{c.fileCount}</span>
               </button>
@@ -73,8 +98,13 @@ export function BranchPicker() {
               <div className="pw-menu-head">Branches, as committed</div>
               {branches.map((b) => {
                 const current = view.kind === 'branch' && view.branch === b
+
                 return (
-                  <button key={b} className={`pw-menu-item pw-checkout ${current ? 'active' : ''}`} onClick={pick(() => !current && store.send({ t: 'openBranch', branch: b }))}>
+                  <button
+                    key={b}
+                    className={`pw-menu-item pw-checkout ${current ? 'active' : ''}`}
+                    onClick={pick(() => !current && store.send({ t: 'openBranch', branch: b }))}
+                  >
                     <span className="pw-checkout-text">
                       <span className="pw-checkout-branch">{b}</span>
                     </span>
@@ -96,6 +126,7 @@ type Mode = 'side' | 'swipe' | 'diff'
 
 export function ChangesView() {
   const open = useStore((s) => s.changesOpen)
+
   return open ? <Changes /> : null
 }
 
@@ -107,15 +138,19 @@ function Changes() {
   const [result, setResult] = useState<RepoCompare | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [nonce, setNonce] = useState(0)
+
   const [mode, setMode] = useState<Mode>(() => {
     try {
+      // SAFETY: changesMode is only written by pickMode below with Mode values; fallback is 'side'.
       return (localStorage.getItem('paperish:changesMode') as Mode) || 'side'
     } catch {
       return 'side'
     }
   })
+
   const pickMode = (m: Mode) => {
     setMode(m)
+
     try {
       localStorage.setItem('paperish:changesMode', m)
     } catch {}
@@ -125,7 +160,9 @@ function Changes() {
     if (!fileId) return
     fetch(`/api/repo/history?file=${fileId}`)
       .then((r) => r.json())
-      .then((res: { commits?: RepoCommit[]; error?: string }) => (res.error ? setError(res.error) : setCommits(res.commits ?? [])))
+      .then((res: { commits?: RepoCommit[]; error?: string }) =>
+        res.error ? setError(res.error) : setCommits(res.commits ?? []),
+      )
       .catch(() => setError('Couldn’t read the history.'))
   }, [fileId, repo?.state, nonce])
 
@@ -136,8 +173,12 @@ function Changes() {
     setError(null)
     fetch(`/api/repo/compare?file=${fileId}&commit=${encodeURIComponent(target)}`)
       .then((r) => r.json())
-      .then((res: RepoCompare & { error?: string }) => live && (res.error ? setError(res.error) : setResult(res)))
+      .then(
+        (res: RepoCompare & { error?: string }) =>
+          live && (res.error ? setError(res.error) : setResult(res)),
+      )
       .catch(() => live && setError('Comparing failed.'))
+
     return () => {
       live = false
     }
@@ -147,7 +188,9 @@ function Changes() {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') store.setChangesOpen(false)
     }
+
     window.addEventListener('keydown', onKey)
+
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
@@ -166,25 +209,44 @@ function Changes() {
 
   return (
     <div className="pw-changes" role="dialog" aria-label="Changes">
-      <ChangesBar repo={repo} onRefresh={() => setNonce((n) => n + 1)} mode={mode} setMode={pickMode} />
+      <ChangesBar
+        repo={repo}
+        onRefresh={() => setNonce((n) => n + 1)}
+        mode={mode}
+        setMode={pickMode}
+      />
       <div className="pw-changes-body">
         <nav className="pw-changes-list" aria-label="Versions">
-          <button className={`pw-version ${target === 'working' ? 'active' : ''}`} onClick={() => setTarget('working')}>
+          <button
+            className={`pw-version ${target === 'working' ? 'active' : ''}`}
+            onClick={() => setTarget('working')}
+          >
             <span className="pw-version-title">
               <span className={`pw-repo-dot ${repo.state}`} />
               {workingDirty ? 'Uncommitted changes' : 'Working copy'}
             </span>
-            <span className="pw-version-meta">{workingDirty ? `vs ${commits?.[0]?.short ?? 'nothing yet'}` : 'same as the last commit'}</span>
+            <span className="pw-version-meta">
+              {workingDirty
+                ? `vs ${commits?.[0]?.short ?? 'nothing yet'}`
+                : 'same as the last commit'}
+            </span>
           </button>
           {commits?.map((c) => (
-            <button key={c.sha} className={`pw-version ${target === c.sha ? 'active' : ''}`} onClick={() => setTarget(c.sha)} title={`${c.sha}\n${c.author}, ${new Date(c.date).toLocaleString()}`}>
+            <button
+              key={c.sha}
+              className={`pw-version ${target === c.sha ? 'active' : ''}`}
+              onClick={() => setTarget(c.sha)}
+              title={`${c.sha}\n${c.author}, ${new Date(c.date).toLocaleString()}`}
+            >
               <span className="pw-version-title">{c.subject}</span>
               <span className="pw-version-meta">
                 <code>{c.short}</code> · {c.author} · {ago(c.date)}
               </span>
             </button>
           ))}
-          {commits && !commits.length && repo.state !== 'unversioned' && <div className="pw-empty pw-pad">No commits of this file yet.</div>}
+          {commits && !commits.length && repo.state !== 'unversioned' && (
+            <div className="pw-empty pw-pad">No commits of this file yet.</div>
+          )}
         </nav>
         <main className="pw-changes-main">
           {error && <div className="pw-error-box">{error}</div>}
@@ -214,13 +276,16 @@ function Changes() {
                   {n}
                 </p>
               ))}
-              {!visible.length && <div className="pw-empty pw-changes-empty">No visual changes.</div>}
+              {!visible.length && (
+                <div className="pw-empty pw-changes-empty">No visual changes.</div>
+              )}
               {visible.map((c) => (
                 <ChangeCard key={c.id} change={c} mode={mode} live={target === 'working'} />
               ))}
               {unchanged.length > 0 && (
                 <div className="pw-unchanged">
-                  <span className="pw-muted">Unchanged</span> {unchanged.map((c) => c.name + (c.moved ? ' (moved)' : '')).join(', ')}
+                  <span className="pw-muted">Unchanged</span>{' '}
+                  {unchanged.map((c) => c.name + (c.moved ? ' (moved)' : '')).join(', ')}
                 </div>
               )}
             </>
@@ -231,11 +296,25 @@ function Changes() {
   )
 }
 
-function ChangesBar({ repo, onRefresh, mode, setMode }: { repo: RepoState | null; onRefresh: () => void; mode: Mode; setMode: (m: Mode) => void }) {
+function ChangesBar({
+  repo,
+  onRefresh,
+  mode,
+  setMode,
+}: {
+  repo: RepoState | null
+  onRefresh: () => void
+  mode: Mode
+  setMode: (m: Mode) => void
+}) {
   return (
     <header className="pw-viewer-bar">
       <div className="pw-viewer-left">
-        <button className="pw-viewer-btn" title="Close (Esc)" onClick={() => store.setChangesOpen(false)}>
+        <button
+          className="pw-viewer-btn"
+          title="Close (Esc)"
+          onClick={() => store.setChangesOpen(false)}
+        >
           <Icon.Close />
         </button>
         <span className="pw-changes-title">Changes</span>
@@ -274,16 +353,27 @@ function ChangesBar({ repo, onRefresh, mode, setMode }: { repo: RepoState | null
   )
 }
 
-function ChangeCard({ change: c, mode, live }: { change: ArtboardChange; mode: Mode; live: boolean }) {
+function ChangeCard({
+  change: c,
+  mode,
+  live,
+}: {
+  change: ArtboardChange
+  mode: Mode
+  live: boolean
+}) {
   const canJump = live && c.status !== 'removed' && !!store.node(c.id)
+
   const jump = () => {
     // Artboards sit directly under their page's root.
     const page = store.doc?.pages.find((p) => p.rootId === store.node(c.id)?.parent)
     store.setChangesOpen(false)
+
     if (page && page.id !== store.pageId) store.setPage(page.id)
     store.select([c.id])
     requestAnimationFrame(() => zoomToFit([c.id]))
   }
+
   return (
     <article className={`pw-change ${c.status}`}>
       <header className="pw-change-head">
@@ -338,10 +428,12 @@ function ChangeCard({ change: c, mode, live }: { change: ArtboardChange; mode: M
 function Swipe({ before, after, name }: { before: string; after: string; name: string }) {
   const [pos, setPos] = useState(50)
   const ref = useRef<HTMLDivElement>(null)
+
   const move = (e: React.PointerEvent) => {
     const r = ref.current!.getBoundingClientRect()
     setPos(Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100)))
   }
+
   return (
     <figure className="pw-change-single">
       <figcaption>
@@ -350,7 +442,12 @@ function Swipe({ before, after, name }: { before: string; after: string; name: s
       </figcaption>
       <div className="pw-swipe" ref={ref} onPointerMove={move} onPointerDown={move}>
         <img src={after} alt={`${name} after`} />
-        <img className="pw-swipe-before" src={before} alt={`${name} before`} style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }} />
+        <img
+          className="pw-swipe-before"
+          src={before}
+          alt={`${name} before`}
+          style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
+        />
         <span className="pw-swipe-line" style={{ left: `${pos}%` }} />
       </div>
     </figure>
@@ -359,20 +456,27 @@ function Swipe({ before, after, name }: { before: string; after: string; name: s
 
 function summarize(changes: ArtboardChange[]): string {
   const n = (s: ArtboardChange['status']) => changes.filter((c) => c.status === s).length
+
   const parts = [
     n('changed') && `${n('changed')} changed`,
     n('added') && `${n('added')} added`,
     n('removed') && `${n('removed')} removed`,
     n('unchanged') && `${n('unchanged')} unchanged`,
   ].filter(Boolean)
+
   return parts.join(', ') || 'no artboards'
 }
 
 function ago(iso: string) {
   const s = (Date.now() - new Date(iso).getTime()) / 1000
+
   if (s < 60) return 'just now'
+
   if (s < 3600) return `${Math.floor(s / 60)}m ago`
+
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+
   if (s < 86400 * 30) return `${Math.floor(s / 86400)}d ago`
+
   return new Date(iso).toLocaleDateString()
 }

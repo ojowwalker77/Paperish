@@ -7,7 +7,7 @@
 //   published browser values; 466×678 / 890×626 assume DPR 3 (screensize.io estimate).
 // Corner radii, bezels and button positions are visual approximations.
 
-export interface DeviceButton {
+interface DeviceButton {
   side: 'left' | 'right' | 'top'
   /** Offset along the edge, from the top (or left for 'top'), in px. */
   at: number
@@ -15,7 +15,7 @@ export interface DeviceButton {
   kind?: 'camera-control'
 }
 
-export type Cutout =
+type Cutout =
   | { kind: 'island'; width: number; height: number; top: number }
   | { kind: 'hole'; size: number; top: number }
   | { kind: 'none' }
@@ -166,6 +166,7 @@ export function deviceById(id: string | null | undefined): Device | undefined {
 export function shellSize(s: DeviceScreen) {
   const edge = 2 // titanium ring drawn with box-shadow
   const buttonRoom = 8
+
   return {
     width: s.width + s.bezel * 2 + (edge + buttonRoom) * 2,
     height: s.height + s.bezel * 2 + (edge + buttonRoom) * 2,

@@ -1,0 +1,23 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "== typecheck =="
+bunx tsc --noEmit
+
+echo "== lint =="
+./node_modules/.bin/oxlint
+
+echo "== format =="
+./node_modules/.bin/oxfmt --check src scripts vite.config.ts oxlint.config.ts index.html
+
+echo "== knip =="
+./node_modules/.bin/knip
+
+echo "== audit =="
+bun audit
+
+echo "== build =="
+npm run build
+
+echo "ALL CHECKS PASSED"

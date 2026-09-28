@@ -10,6 +10,7 @@ export function canvasResetCss(scope: string): string {
       .split(',')
       .map((x) => `${scope} ${x.trim()}`)
       .join(',')
+
   return `
 ${scope}{font-family:${DEFAULT_FONT},system-ui,sans-serif;font-size:16px;line-height:normal;color:#000;font-weight:400;letter-spacing:normal;text-align:left;-webkit-font-smoothing:antialiased;}
 ${s('*,*::before,*::after')}{box-sizing:border-box;margin:0;padding:0;border:0 solid;}

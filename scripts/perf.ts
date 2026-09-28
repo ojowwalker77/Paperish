@@ -10,45 +10,70 @@
 import { chromium, type CDPSession, type Page } from 'playwright'
 
 const BASE = process.env.PAPERISH_URL ?? 'http://127.0.0.1:29980'
+
 const args = process.argv.slice(2)
+
 const fileId = args.find((a) => !a.startsWith('--'))
+
 const headed = args.includes('--headed')
 
 type Metrics = Record<string, number>
 
-async function metrics(cdp: CDPSession): Promise<Metrics> {
-  const { metrics } = await cdp.send('Performance.getMetrics')
-  return Object.fromEntries(metrics.map((m) => [m.name, m.value]))
+declare global {
+  interface Window {
+    __frames: number[]
+    __raf: number
+    __lofs: number
+    __texts: string[]
+  }
 }
 
-async function measure(page: Page, cdp: CDPSession, name: string, n: number, run: () => Promise<void>) {
+async function metrics(cdp: CDPSession): Promise<Metrics> {
+  const { metrics: perfMetrics } = await cdp.send('Performance.getMetrics')
+
+  return Object.fromEntries(perfMetrics.map((m) => [m.name, m.value]))
+}
+
+async function measure(
+  page: Page,
+  cdp: CDPSession,
+  name: string,
+  n: number,
+  run: () => Promise<void>,
+) {
   await page.evaluate(() => {
-    const w = window as unknown as { __frames: number[]; __raf: number; __lofs: number }
-    w.__frames = []
-    w.__lofs = 0
+    window.__frames = []
+    window.__lofs = 0
     let last = performance.now()
+
     const tick = (t: number) => {
-      w.__frames.push(t - last)
+      window.__frames.push(t - last)
       last = t
-      w.__raf = requestAnimationFrame(tick)
+      window.__raf = requestAnimationFrame(tick)
     }
-    w.__raf = requestAnimationFrame(tick)
+
+    window.__raf = requestAnimationFrame(tick)
   })
   const before = await metrics(cdp)
   const t0 = Date.now()
   await run()
   // let trailing work (rAF batches, React commits) land
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))))
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+  )
   const wall = Date.now() - t0
   const after = await metrics(cdp)
+
   const frames = await page.evaluate(() => {
-    const w = window as unknown as { __frames: number[]; __raf: number }
-    cancelAnimationFrame(w.__raf)
-    return w.__frames.slice(1)
+    cancelAnimationFrame(window.__raf)
+
+    return window.__frames.slice(1)
   })
+
   const d = (k: string) => ((after[k] ?? 0) - (before[k] ?? 0)) * 1000
-  const sorted = [...frames].sort((a, b) => a - b)
+  const sorted = [...frames].toSorted((a, b) => a - b)
   const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0
+
   const row = {
     scenario: name,
     'task ms/op': +(d('TaskDuration') / n).toFixed(2),
@@ -59,13 +84,20 @@ async function measure(page: Page, cdp: CDPSession, name: string, n: number, run
     'p95 frame': +p95.toFixed(1),
     'max frame': +(sorted[sorted.length - 1] ?? 0).toFixed(1),
   }
+
   console.log(JSON.stringify(row))
+
   return row
 }
 
 async function main() {
   const browser = await chromium.launch({ headless: !headed })
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 })
+
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 2,
+  })
+
   page.on('crash', () => console.log('PAGE CRASHED'))
   page.on('close', () => console.log('page closed'))
   browser.on('disconnected', () => console.log('browser disconnected'))
@@ -74,10 +106,15 @@ async function main() {
   await cdp.send('Performance.enable')
   await page.addInitScript('window.__name = (f) => f; localStorage.clear()')
   await page.goto(`${BASE}/${fileId ? `?file=${fileId}` : ''}`)
-  await page.waitForFunction(() => (window as unknown as { __store?: { doc?: unknown } }).__store?.doc)
+  // SAFETY: bench waits for the editor to expose its store; __store is set by the app before doc loads.
+  await page.waitForFunction(() => (window as any).__store?.doc)
   await page.waitForTimeout(1500)
+  // SAFETY: bench runs against the editor page where __store exposes doc nodes for counting.
   const count = await page.evaluate(() => Object.keys((window as any).__store.doc.nodes).length)
-  console.log(`file ${await page.evaluate(() => (window as any).__store.doc.name)} · ${count} nodes`)
+  // SAFETY: bench runs against the editor page where __store exposes the doc name for logging.
+  console.log(
+    `file ${await page.evaluate(() => (window as any).__store.doc.name)} · ${count} nodes`,
+  )
 
   const rows = []
   const cx = 720
@@ -88,7 +125,8 @@ async function main() {
   await page.mouse.move(cx, cy)
   rows.push(
     await measure(page, cdp, 'wheel pan', 120, async () => {
-      for (let i = 0; i < 120; i++) await page.mouse.wheel(i % 40 < 20 ? 12 : -12, i % 60 < 30 ? 18 : -18)
+      for (let i = 0; i < 120; i++)
+        await page.mouse.wheel(i % 40 < 20 ? 12 : -12, i % 60 < 30 ? 18 : -18)
     }),
   )
 
@@ -102,25 +140,40 @@ async function main() {
 
   // Zoom to 100% on the busiest artboard so hover hits real content.
   const bigId = await page.evaluate(() => {
+    // SAFETY: bench runs against the editor page where __store exposes doc nodes and camera.
     const s = (window as any).__store
     const root = s.doc.nodes[s.page.rootId]
-    const big = root.children.map((id: string) => s.doc.nodes[id]).sort((a: any, b: any) => b.children.length - a.children.length)[0]
+
+    const big = root.children
+      .map((id: string) => s.doc.nodes[id])
+      .toSorted((a: any, b: any) => b.children.length - a.children.length)[0]
+
     const left = parseFloat(big.styles.left ?? 0)
     const top = parseFloat(big.styles.top ?? 0)
     s.setCamera({ zoom: 1, x: 300 - left, y: 80 - top })
+
+    // SAFETY: busiest artboard id comes from doc nodes; evaluate returns it for the bench driver.
     return big.id as string
   })
+
   await page.waitForTimeout(300)
   rows.push(
     await measure(page, cdp, 'hover sweep', 150, async () => {
-      for (let i = 0; i < 150; i++) await page.mouse.move(320 + (i % 50) * 14, 120 + Math.floor(i / 50) * 180 + (i % 7) * 9)
+      for (let i = 0; i < 150; i++)
+        await page.mouse.move(320 + (i % 50) * 14, 120 + Math.floor(i / 50) * 180 + (i % 7) * 9)
     }),
   )
 
   // Remember what the drag and edits below touch, to restore it at the end.
   const original = await page.evaluate((id) => {
+    // SAFETY: bench passes a valid artboard id; __store exposes its styles for restore.
     const n = (window as any).__store.doc.nodes[id]
-    return { left: n.styles.left ?? null, top: n.styles.top ?? null, opacity: n.styles.opacity ?? null }
+
+    return {
+      left: n.styles.left ?? null,
+      top: n.styles.top ?? null,
+      opacity: n.styles.opacity ?? null,
+    }
   }, bigId)
 
   // Select a top-level artboard via its label and drag it.
@@ -140,12 +193,14 @@ async function main() {
   rows.push(
     await measure(page, cdp, 'style edit', 30, async () => {
       for (let i = 0; i < 30; i++) {
-        await page.evaluate(async (i) => {
+        await page.evaluate(async (idx) => {
+          // SAFETY: bench selects an artboard above; __store exposes selection and tx for style edits.
           const s = (window as any).__store
           const id = s.selection[0]
+
           if (!id) throw new Error('nothing selected')
           const v = s.version
-          s.tx([{ t: 'styles', id, set: { opacity: String(0.5 + (i % 2) * 0.5) } }])
+          s.tx([{ t: 'styles', id, set: { opacity: String(0.5 + (idx % 2) * 0.5) } }])
           await s.waitForVersion(v + 1)
           await new Promise((r) => requestAnimationFrame(r))
         }, i)
@@ -155,16 +210,20 @@ async function main() {
 
   // Select deep leaves one by one (inspector + layers + overlay churn).
   await page.evaluate(() => {
+    // SAFETY: bench runs against the editor page; __store exposes text node ids for selection.
     const s = (window as any).__store
-    ;(window as any).__texts = Object.keys(s.doc.nodes).filter((id) => s.doc.nodes[id].type === 'Text')
+
+    window.__texts = Object.keys(s.doc.nodes).filter((id) => s.doc.nodes[id].type === 'Text')
   })
   rows.push(
     await measure(page, cdp, 'select', 40, async () => {
       for (let i = 0; i < 40; i++) {
-        await page.evaluate((i) => {
+        await page.evaluate((idx) => {
+          // SAFETY: bench populated __texts above; __store selects those text nodes for measurement.
           const s = (window as any).__store
-          const ids = (window as any).__texts as string[]
-          s.select([ids[(i * 37) % ids.length]])
+          const ids = window.__texts
+          s.select([ids[(idx * 37) % ids.length]])
+
           return new Promise((r) => requestAnimationFrame(r))
         }, i)
       }
@@ -173,6 +232,7 @@ async function main() {
 
   await page.evaluate(
     async ({ id, set }) => {
+      // SAFETY: bench restores the artboard touched above; __store exposes tx for style restore.
       const s = (window as any).__store
       const v = s.version
       s.tx([{ t: 'styles', id, set }], 'perf: restore')

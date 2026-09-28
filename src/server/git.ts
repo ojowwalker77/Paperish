@@ -25,13 +25,19 @@ export interface GitFileStatus {
 
 function git(cwd: string, args: string[], binary = false): Promise<Buffer | string> {
   return new Promise((resolve, reject) => {
-    execFile('git', args, { cwd, maxBuffer: 256 * 1024 * 1024, encoding: binary ? 'buffer' : 'utf8' }, (err, stdout, stderr) => {
-      if (err) reject(new Error(String(stderr || err.message).trim()))
-      else resolve(stdout)
-    })
+    execFile(
+      'git',
+      args,
+      { cwd, maxBuffer: 256 * 1024 * 1024, encoding: binary ? 'buffer' : 'utf8' },
+      (err, stdout, stderr) => {
+        if (err) reject(new Error(String(stderr || err.message).trim()))
+        else resolve(stdout)
+      },
+    )
   })
 }
 
+// SAFETY: git defaults to utf8 encoding so stdout resolves as a string.
 const text = (cwd: string, args: string[]) => git(cwd, args) as Promise<string>
 
 export async function repoRoot(dir: string): Promise<string | null> {
@@ -45,41 +51,62 @@ export async function repoRoot(dir: string): Promise<string | null> {
 export async function fileStatus(file: string): Promise<GitFileStatus> {
   const dir = path.dirname(file)
   const root = await repoRoot(dir)
+
   if (!root) return { root: null, branch: null, rel: path.basename(file), state: 'unversioned' }
   const rel = path.relative(root, file).split(path.sep).join('/')
+
   const [branch, porcelain] = await Promise.all([
-    text(dir, ['rev-parse', '--abbrev-ref', 'HEAD']).then((s) => s.trim(), () => null),
+    text(dir, ['rev-parse', '--abbrev-ref', 'HEAD']).then(
+      (s) => s.trim(),
+      () => null,
+    ),
     text(root, ['status', '--porcelain', '--', rel]).catch(() => ''),
   ])
+
   const code = porcelain.slice(0, 2)
   const state = !porcelain ? 'clean' : code === '??' ? 'untracked' : 'modified'
+
   return { root, branch: branch === 'HEAD' ? null : branch, rel, state }
 }
 
 /** Commits that touched the file, newest first. */
 export async function fileLog(file: string, limit = 50): Promise<Commit[]> {
   const root = await repoRoot(path.dirname(file))
+
   if (!root) return []
   const rel = path.relative(root, file).split(path.sep).join('/')
   let out: string
+
   try {
-    out = await text(root, ['log', '--follow', `-n${limit}`, '--name-only', '--format=%x1e%H%x1f%h%x1f%an%x1f%aI%x1f%s', '--', rel])
+    out = await text(root, [
+      'log',
+      '--follow',
+      `-n${limit}`,
+      '--name-only',
+      '--format=%x1e%H%x1f%h%x1f%an%x1f%aI%x1f%s',
+      '--',
+      rel,
+    ])
   } catch {
     return [] // no commits yet
   }
+
   return out
     .split('\x1e')
     .filter((s) => s.trim())
     .map((chunk) => {
       const [head, ...rest] = chunk.split('\n')
       const [sha, short, author, date, subject] = head.split('\x1f')
+
       return { sha, short, author, date, subject, path: rest.find((l) => l.trim())?.trim() ?? rel }
     })
 }
 
 /** Resolve a revision ("HEAD", "main", "abc123", "HEAD~2") to a full sha. */
 export async function resolveRev(dir: string, rev: string): Promise<string> {
-  if (!/^[\w./~^@{}-]+$/.test(rev) || rev.startsWith('-')) throw new Error(`Invalid revision "${rev}"`)
+  if (!/^[\w./~^@{}-]+$/.test(rev) || rev.startsWith('-'))
+    throw new Error(`Invalid revision "${rev}"`)
+
   try {
     return (await text(dir, ['rev-parse', '--verify', '--quiet', `${rev}^{commit}`])).trim()
   } catch {
@@ -90,6 +117,7 @@ export async function resolveRev(dir: string, rev: string): Promise<string> {
 /** A file's contents at a commit; `rel` is relative to the repo root. Null when it didn't exist there. */
 export async function showFile(root: string, sha: string, rel: string): Promise<Buffer | null> {
   try {
+    // SAFETY: git is called with binary=true so stdout resolves as a Buffer.
     return (await git(root, ['show', `${sha}:${rel}`], true)) as Buffer
   } catch {
     return null
@@ -108,11 +136,13 @@ export interface Worktree {
 /** Every checkout of the repo: the main one first, then linked worktrees. */
 export async function worktrees(dir: string): Promise<Worktree[]> {
   let out: string
+
   try {
     out = await text(dir, ['worktree', 'list', '--porcelain'])
   } catch {
     return []
   }
+
   return out
     .split('\n\n')
     .filter((b) => b.startsWith('worktree '))
@@ -120,19 +150,32 @@ export async function worktrees(dir: string): Promise<Worktree[]> {
     .map((block, i) => {
       const field = (k: string) => block.match(new RegExp(`^${k} (.*)$`, 'm'))?.[1] ?? null
       const branch = field('branch')
-      return { path: field('worktree')!, branch: branch?.replace(/^refs\/heads\//, '') ?? null, head: field('HEAD') ?? '', main: i === 0 }
+
+      return {
+        path: field('worktree')!,
+        branch: branch?.replace(/^refs\/heads\//, '') ?? null,
+        head: field('HEAD') ?? '',
+        main: i === 0,
+      }
     })
 }
 
 /** Local branches, most recently committed first. */
 export async function branches(dir: string): Promise<{ name: string; date: string }[]> {
   try {
-    const out = await text(dir, ['for-each-ref', '--sort=-committerdate', '--format=%(refname:short)%1f%(committerdate:iso-strict)', 'refs/heads'])
+    const out = await text(dir, [
+      'for-each-ref',
+      '--sort=-committerdate',
+      '--format=%(refname:short)%1f%(committerdate:iso-strict)',
+      'refs/heads',
+    ])
+
     return out
       .split('\n')
       .filter(Boolean)
       .map((l) => {
         const [name, date] = l.split('\x1f')
+
         return { name, date }
       })
   } catch {
@@ -143,7 +186,9 @@ export async function branches(dir: string): Promise<{ name: string; date: strin
 /** Files under `dir` (repo-relative) at a revision. */
 export async function listTree(root: string, rev: string, dir: string): Promise<string[]> {
   try {
-    return (await text(root, ['ls-tree', '-r', '--name-only', rev, '--', dir])).split('\n').filter(Boolean)
+    return (await text(root, ['ls-tree', '-r', '--name-only', rev, '--', dir]))
+      .split('\n')
+      .filter(Boolean)
   } catch {
     return []
   }
