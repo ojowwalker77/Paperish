@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "paperish": {
+      "type": "http",
+      "url": "http://127.0.0.1:29980/mcp/77b4aa111a",
+      "headers": {
+        "X-Paperish-Dir": "${PWD:-}"
+      }
+    }
+  }
+}

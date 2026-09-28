@@ -1,0 +1,9 @@
+// Tags the renderer emits as-is. Anything else renders as a div (or span for
+// inline elements) so arbitrary markup can't smuggle in behaviour.
+export const RENDER_TAGS = new Set([
+  'div', 'section', 'header', 'footer', 'nav', 'main', 'aside', 'article', 'span', 'p', 'h1', 'h2', 'h3', 'h4',
+  'h5', 'h6', 'a', 'button', 'ul', 'ol', 'li', 'figure', 'figcaption', 'blockquote', 'pre', 'code', 'strong', 'em',
+  'b', 'i', 'small', 'label', 'dl', 'dt', 'dd', 'time', 'mark', 'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th',
+  'caption', 'form', 'fieldset', 'legend', 'summary', 'details', 'hr', 'sup', 'sub', 'u', 's', 'abbr', 'cite', 'q',
+  'kbd', 'samp', 'var', 'del', 'ins', 'address', 'menu', 'search', 'hgroup',
+])

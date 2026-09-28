@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "paperish",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 29980,
+      "url": "http://127.0.0.1:29980"
+    },
+    {
+      "name": "paperish-prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["start"],
+      "port": 29980,
+      "url": "http://127.0.0.1:29980"
+    }
+  ]
+}

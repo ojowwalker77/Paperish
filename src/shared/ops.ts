@@ -1,0 +1,221 @@
+import type { Doc, Op, PNode, Page, StyleValue } from './types'
+
+// Applies ops with structural sharing: untouched nodes keep identity, so the
+// editor can re-render only the nodes that changed. Returns the inverse ops
+// (already ordered for application) so the server can keep an undo stack.
+
+export function applyOps(doc: Doc, ops: Op[]): { doc: Doc; inverse: Op[] } {
+  const nodes: Record<string, PNode> = { ...doc.nodes }
+  const cloned = new Set<string>()
+  let pages = doc.pages
+  let tokens = doc.tokens
+  let comments = doc.comments
+  let fontFaces = doc.fontFaces
+  let project = doc.project
+  let name = doc.name
+  const inverse: Op[] = []
+
+  const mut = (id: string): PNode => {
+    const n = nodes[id]
+    if (!n) throw new Error(`Node ${id} not found`)
+    if (cloned.has(id)) return n
+    const c: PNode = { ...n, children: n.children.slice(), styles: { ...n.styles } }
+    nodes[id] = c
+    cloned.add(id)
+    return c
+  }
+
+  const subtree = (id: string): PNode[] => {
+    const out: PNode[] = []
+    const walk = (nid: string) => {
+      const n = nodes[nid]
+      if (!n) return
+      out.push(n)
+      n.children.forEach(walk)
+    }
+    walk(id)
+    return out
+  }
+
+  for (const op of ops) {
+    const inv: Op[] = []
+    switch (op.t) {
+      case 'insert': {
+        const parent = mut(op.parentId)
+        const root = op.nodes[0]
+        if (!root) break
+        for (const n of op.nodes) {
+          nodes[n.id] = n
+          cloned.delete(n.id)
+        }
+        nodes[root.id] = { ...root, parent: parent.id }
+        const index = clamp(op.index, 0, parent.children.length)
+        parent.children.splice(index, 0, root.id)
+        inv.push({ t: 'delete', ids: [root.id] })
+        break
+      }
+      case 'delete': {
+        for (const id of op.ids) {
+          const n = nodes[id]
+          if (!n || !n.parent) continue
+          const parent = mut(n.parent)
+          const index = parent.children.indexOf(id)
+          const removed = subtree(id)
+          if (index >= 0) parent.children.splice(index, 1)
+          for (const r of removed) {
+            delete nodes[r.id]
+            cloned.delete(r.id)
+          }
+          inv.unshift({ t: 'insert', parentId: parent.id, index: Math.max(0, index), nodes: removed })
+        }
+        break
+      }
+      case 'styles': {
+        const n = mut(op.id)
+        const prev: Record<string, StyleValue | null> = {}
+        for (const [k, v] of Object.entries(op.set)) {
+          prev[k] = k in n.styles ? n.styles[k] : null
+          if (v === null || v === '') delete n.styles[k]
+          else n.styles[k] = v
+        }
+        inv.push({ t: 'styles', id: op.id, set: prev })
+        break
+      }
+      case 'patch': {
+        const n = mut(op.id) as unknown as Record<string, unknown>
+        const prev: Record<string, unknown> = {}
+        for (const [k, v] of Object.entries(op.patch)) {
+          prev[k] = k in n ? n[k] : null
+          if (v === null || v === undefined) delete n[k]
+          else n[k] = v
+        }
+        inv.push({ t: 'patch', id: op.id, patch: prev })
+        break
+      }
+      case 'move': {
+        const n = mut(op.id)
+        if (!n.parent) break
+        const from = mut(n.parent)
+        const fromIndex = from.children.indexOf(op.id)
+        from.children.splice(fromIndex, 1)
+        const to = mut(op.parentId)
+        const index = clamp(op.index, 0, to.children.length)
+        to.children.splice(index, 0, op.id)
+        n.parent = to.id
+        inv.push({ t: 'move', id: op.id, parentId: from.id, index: fromIndex })
+        break
+      }
+      case 'tokens': {
+        inv.push({ t: 'tokens', tokens })
+        tokens = op.tokens
+        break
+      }
+      case 'page:add': {
+        nodes[op.root.id] = op.root
+        for (const n of op.nodes ?? []) nodes[n.id] = n
+        pages = pages.slice()
+        pages.splice(op.index ?? pages.length, 0, op.page)
+        inv.push({ t: 'page:remove', pageId: op.page.id })
+        break
+      }
+      case 'page:remove': {
+        const index = pages.findIndex((p) => p.id === op.pageId)
+        if (index < 0) break
+        const page = pages[index]
+        const all = subtree(page.rootId)
+        for (const n of all) delete nodes[n.id]
+        pages = pages.filter((p) => p.id !== op.pageId)
+        const [root, ...rest] = all
+        inv.push({ t: 'page:add', page, root, index, nodes: rest })
+        break
+      }
+      case 'page:rename': {
+        const page = pages.find((p) => p.id === op.pageId)
+        if (!page) break
+        inv.push({ t: 'page:rename', pageId: op.pageId, name: page.name })
+        pages = pages.map((p) => (p.id === op.pageId ? ({ ...p, name: op.name } as Page) : p))
+        break
+      }
+      case 'doc:rename': {
+        inv.push({ t: 'doc:rename', name })
+        name = op.name
+        break
+      }
+      case 'comments': {
+        inv.push({ t: 'comments', comments })
+        comments = op.comments
+        break
+      }
+      case 'project': {
+        inv.push({ t: 'project', project: project ?? null })
+        project = op.project ?? undefined
+        break
+      }
+      case 'fontFaces': {
+        inv.push({ t: 'fontFaces', fontFaces: fontFaces ?? [] })
+        fontFaces = op.fontFaces
+        break
+      }
+    }
+    inverse.unshift(...inv)
+  }
+
+  return { doc: { ...doc, name, nodes, pages, tokens, comments, fontFaces, project }, inverse }
+}
+
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v))
+}
+
+// ---- Tree helpers ----------------------------------------------------------
+
+export function subtreeIds(nodes: Record<string, PNode>, id: string): string[] {
+  const out: string[] = []
+  const walk = (nid: string) => {
+    const n = nodes[nid]
+    if (!n) return
+    out.push(nid)
+    n.children.forEach(walk)
+  }
+  walk(id)
+  return out
+}
+
+export function ancestors(nodes: Record<string, PNode>, id: string): PNode[] {
+  const out: PNode[] = []
+  let cur = nodes[id]?.parent
+  while (cur) {
+    const n = nodes[cur]
+    if (!n) break
+    out.push(n)
+    cur = n.parent
+  }
+  return out
+}
+
+export function pageOf(doc: Doc, id: string): Page | undefined {
+  let cur: PNode | undefined = doc.nodes[id]
+  while (cur && cur.parent) cur = doc.nodes[cur.parent]
+  return cur ? doc.pages.find((p) => p.rootId === cur!.id) : undefined
+}
+
+/** The top-level node (direct child of a page root) containing id. */
+export function artboardOf(nodes: Record<string, PNode>, id: string): PNode | undefined {
+  let cur = nodes[id]
+  while (cur && cur.parent) {
+    const parent = nodes[cur.parent]
+    if (!parent) return undefined
+    if (parent.type === 'Root') return cur
+    cur = parent
+  }
+  return undefined
+}
+
+export function isArtboard(nodes: Record<string, PNode>, id: string): boolean {
+  const n = nodes[id]
+  return !!n && !!n.parent && nodes[n.parent]?.type === 'Root'
+}
+
+export function canHaveChildren(n: PNode): boolean {
+  return n.type === 'Frame' || n.type === 'Root'
+}

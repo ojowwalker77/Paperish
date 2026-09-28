@@ -1,0 +1,18 @@
+{
+  "paperish": 1,
+  "name": "paperish",
+  "codebase": "..",
+  "seq": 2,
+  "pages": [
+    { "id": "P2", "name": "Page 1", "rootId": "R1" }
+  ],
+  "tokens": [],
+  "comments": [],
+  "nodes": {
+    "R1": {
+      "type": "Root",
+      "name": "Page 1",
+      "tag": "div"
+    }
+  }
+}

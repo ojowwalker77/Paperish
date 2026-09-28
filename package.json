@@ -1,0 +1,96 @@
+{
+  "name": "paperish",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "electron .",
+    "start": "vite build && NODE_ENV=production electron .",
+    "build": "vite build && bun build src/app/main.ts --target=node --format=esm --splitting --packages=external --outdir=out",
+    "dist": "npm run build && electron-builder",
+    "typecheck": "tsc --noEmit",
+    "perf": "tsx scripts/perf.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "^2.1.0",
+    "@modelcontextprotocol/server": "^2.1.0",
+    "@tailwindcss/node": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "dom-serializer": "^3.1.1",
+    "domhandler": "^6.0.1",
+    "electron-updater": "^6.8.9",
+    "htmlparser2": "^12.0.0",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.1",
+    "ws": "^8.21.3",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.1.0",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/ws": "^8.18.1",
+    "electron": "44",
+    "electron-builder": "^26.15.3",
+    "playwright": "^1.63.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "main": "src/app/dev.mjs",
+  "productName": "Paperish",
+  "description": "A design canvas where every design is real HTML/CSS, and agents design alongside you over MCP.",
+  "author": "Jonatas Walker",
+  "build": {
+    "appId": "design.paperish.app",
+    "productName": "Paperish",
+    "directories": {
+      "output": "release"
+    },
+    "extraMetadata": {
+      "main": "out/main.js"
+    },
+    "files": [
+      "out/**",
+      "dist/**",
+      "src/server/import/extract.js",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.graphics-design",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "hardenedRuntime": true
+    },
+    "dmg": {
+      "title": "Paperish",
+      "format": "ULFO"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "ojowwalker77",
+        "repo": "Paperish"
+      }
+    ],
+    "electronLanguages": [
+      "en"
+    ],
+    "compression": "maximum"
+  }
+}
