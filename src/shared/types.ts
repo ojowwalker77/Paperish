@@ -283,6 +283,60 @@ export interface TaskState {
   origin?: string
 }
 
+/** App-wide settings as the editor sees them (the OpenRouter key itself stays on the server). */
+export interface SettingsState {
+  openRouter: boolean
+}
+
+/** What the layout engine measures of one rendered node for design checks. */
+export interface AuditFact {
+  id: string
+  type: NodeType
+  name: string
+  tag: string
+  depth: number
+  text?: string
+  fontSize?: number
+  fontWeight?: number
+  fontFamily?: string
+  color?: string
+  /** The opaque color behind the text, and the contrast ratio against it. */
+  backdrop?: string
+  contrast?: number
+  background?: string
+  border?: string
+  /** top, right, bottom, left */
+  padding: number[]
+  /** row, column */
+  gap?: number[]
+  /** top-left, top-right, bottom-right, bottom-left */
+  radius: number[]
+  width: number
+  height: number
+}
+
+export interface LintIssue {
+  /** Stable across runs: rule and artboard. */
+  id: string
+  rule: string
+  title: string
+  detail: string
+  severity: 'error' | 'warning'
+  artboard: string
+  nodeIds: string[]
+  /** Ops that resolve it, when there's an unambiguous fix. */
+  fix?: Op[]
+}
+
+export interface LintState {
+  /** Path of the DESIGN.md checked against, if the repo has one. */
+  designMd: string | null
+  issues: LintIssue[]
+  /** Do's and Don'ts: checked by Jev, skipped (none written, or no OpenRouter key), or failed. */
+  rules: { count: number; status: 'checked' | 'none' | 'no-key' | 'error'; error?: string }
+  error?: string
+}
+
 // ---- Wire protocol (editor/engine <-> server) --------------------------------
 
 export type ClientMsg =
@@ -310,6 +364,10 @@ export type ClientMsg =
   | { t: 'duplicate'; ids: string[] }
   | { t: 'importUrl'; url: string; width?: number; token?: string }
   | { t: 'createPage'; name?: string }
+  /** Set the OpenRouter key; empty removes it. */
+  | { t: 'settings'; openRouterKey: string }
+  /** Check the open file's current page against its DESIGN.md. */
+  | { t: 'lint' }
 
 export type ServerMsg =
   | { t: 'doc'; doc: Doc; version: number; pageId: string }
@@ -338,3 +396,5 @@ export type ServerMsg =
   | { t: 'project'; project: ProjectState | null }
   | { t: 'repo'; repo: RepoState | null }
   | { t: 'error'; message: string }
+  | { t: 'settings'; settings: SettingsState }
+  | { t: 'lint'; fileId: string; lint: LintState }

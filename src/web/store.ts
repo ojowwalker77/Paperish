@@ -1,6 +1,6 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { applyOps } from '../shared/ops'
-import type { CheckoutInfo, ClientMsg, Doc, FileSummary, Op, PNode, Page, ProjectInfo, ProjectState, ProjectView, RepoState, ServerMsg, TaskState } from '../shared/types'
+import type { CheckoutInfo, ClientMsg, Doc, FileSummary, LintState, Op, PNode, Page, ProjectInfo, ProjectState, ProjectView, RepoState, ServerMsg, SettingsState, TaskState } from '../shared/types'
 
 export interface Camera {
   x: number
@@ -69,6 +69,12 @@ class Store {
   camera: Camera = { x: 80, y: 80, zoom: 0.5 }
   expanded = new Set<string>()
   error: string | null = null
+  settings: SettingsState | null = null
+  settingsOpen = false
+  /** Design checks of the current page. */
+  lint: LintState | null = null
+  lintOpen = false
+  private lintTimer = 0
 
   // Three channels so hot paths stay cheap: the camera changes on every wheel
   // event and only a handful of things draw from it; each rendered node only
@@ -186,6 +192,7 @@ class Store {
           this.repo = null
           this.changesOpen = false
           this.setEditingText(null)
+          this.lint = null
           if (!ENGINE_MODE && !VIEW_NODE) {
             history.replaceState(null, '', `?file=${msg.doc.id}`)
             this.restoreCamera()
@@ -196,6 +203,7 @@ class Store {
           if (this.hover && !msg.doc.nodes[this.hover]) this.hover = null
           if (this.editingText && !msg.doc.nodes[this.editingText]) this.setEditingText(null)
         }
+        this.scheduleLint(0)
         break
       }
       case 'ops': {
@@ -203,6 +211,7 @@ class Store {
         this.doc = applyOps(this.doc, msg.ops).doc
         this.version = msg.version
         if (msg.origin === 'agent') this.lastAgentActivity = Date.now()
+        this.scheduleLint()
         if (!this.doc.pages.some((p) => p.id === this.pageId)) this.pageId = this.doc.pages[0]?.id ?? ''
         this.selection = this.selection.filter((id) => this.doc!.nodes[id])
         if (!this.doc.project) this.project = null
@@ -212,6 +221,13 @@ class Store {
       }
       case 'working':
         this.working = msg.ids
+        break
+      case 'settings':
+        this.settings = msg.settings
+        this.scheduleLint(0)
+        break
+      case 'lint':
+        if (msg.fileId === this.doc?.id) this.lint = msg.lint
         break
       case 'files':
         this.files = msg.files
@@ -242,6 +258,8 @@ class Store {
         this.files = []
         this.preview = null
         this.changesOpen = false
+        this.lint = null
+        this.lintOpen = false
         this.setEditingText(null)
         if (!ENGINE_MODE && !VIEW_NODE) history.replaceState(null, '', location.pathname)
         break
@@ -249,6 +267,7 @@ class Store {
         if (this.pageId !== msg.pageId) {
           this.pageId = msg.pageId
           this.selection = []
+          this.scheduleLint(0)
         }
         break
       case 'reveal':
@@ -369,7 +388,30 @@ class Store {
 
   setInspectOpen(open: boolean) {
     this.inspectOpen = open
+    if (open) this.lintOpen = false
     this.emit()
+  }
+
+  saveSettings(patch: { openRouterKey: string }) {
+    this.send({ t: 'settings', ...patch })
+  }
+
+  setSettingsOpen(open: boolean) {
+    this.settingsOpen = open
+    this.emit()
+  }
+
+  setLintOpen(open: boolean) {
+    this.lintOpen = open
+    if (open) this.inspectOpen = false
+    this.emit()
+  }
+
+  /** Re-check the page once edits settle. */
+  scheduleLint(delay = 1200) {
+    if (!this.doc || ENGINE_MODE || VIEW_NODE) return
+    clearTimeout(this.lintTimer)
+    this.lintTimer = window.setTimeout(() => this.send({ t: 'lint' }), delay)
   }
 
   openPalette(query = '') {
@@ -406,6 +448,7 @@ class Store {
     this.pageId = pageId
     this.selection = []
     this.send({ t: 'page', pageId })
+    this.scheduleLint(0)
     this.emit()
   }
 

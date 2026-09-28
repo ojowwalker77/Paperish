@@ -5,7 +5,7 @@ import { McpServer, type CallToolResult } from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import { applyOps, artboardOf, canHaveChildren, pageOf, subtreeIds } from '../shared/ops'
 import { fontFamiliesOf, normalizeStyles } from '../shared/styles'
-import { TOKEN_TYPES, type Doc, type Op, type PNode, type Styles, type Token } from '../shared/types'
+import { TOKEN_TYPES, type Doc, type LintIssue, type Op, type PNode, type Styles, type Token } from '../shared/types'
 import { fontFaceCss } from '../shared/fontfaces'
 import { canvasResetCss } from '../shared/reset'
 import { assetPath, EXT_MIME } from './assets'
@@ -18,6 +18,7 @@ import { classTokens, tailwindColorNames, tailwindResolver } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
 import { linkProject } from './commands'
 import { compareFiles, openRevision } from './history'
+import { lintFile } from './lint'
 import { runImport } from './tasks'
 import { toJSX, toStaticHTML } from './serialize'
 import { ARTBOARD_GAP, findPlacement } from './placement'
@@ -1170,6 +1171,39 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
       return json({
         moves: results,
         affectedParents: Object.fromEntries([...affected].map((id) => [f.doc.nodes[id]?.type === 'Root' ? 'root' : id, f.doc.nodes[id]?.children ?? []])),
+      })
+    },
+  )
+
+  tool(
+    'lint_design',
+    "Check a page against the repo's DESIGN.md: contrast, type scale, fonts, spacing and corners (measured in the renderer), plus its Do's and Don'ts (judged by Jev when an OpenRouter key is set). Run it before finish_working_on_nodes and fix what it reports. fix:true applies the unambiguous fixes first.",
+    {
+      nodeId: z.string().optional().describe('Only report issues in this artboard (and check its page).'),
+      fix: z.boolean().optional().describe('Apply the available fixes, then report what is left.'),
+      fileId: fileIdArg,
+    },
+    async ({ nodeId, fix, fileId }) => {
+      const f = resolve(fileId)
+      const board = nodeId ? artboardOf(f.doc.nodes, f.node(nodeId).id) ?? f.node(nodeId) : undefined
+      const pageId = board ? pageOf(f.doc, board.id)?.id : undefined
+      const only = (issues: LintIssue[]) => (board ? issues.filter((i) => i.nodeIds.some((id) => id === board.id || artboardOf(f.doc.nodes, id)?.id === board.id)) : issues)
+      let lint = await lintFile(f, pageId)
+      let fixed = 0
+      if (fix) {
+        const ops = only(lint.issues).flatMap((i) => i.fix ?? [])
+        if (ops.length) {
+          f.transact(ops, 'agent', 'lint_design fix')
+          fixed = ops.length
+          lint = await lintFile(f, pageId)
+        }
+      }
+      return json({
+        designMd: lint.designMd,
+        rules: lint.rules,
+        ...(lint.error ? { error: lint.error } : {}),
+        ...(fix ? { fixedNodes: fixed } : {}),
+        issues: only(lint.issues).map(({ fix, ...i }) => ({ ...i, fixable: !!fix })),
       })
     },
   )

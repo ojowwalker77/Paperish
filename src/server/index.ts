@@ -16,6 +16,8 @@ import { duplicate, insertHtml } from './commands'
 import { compareCommit, fileHistory } from './history'
 import { closeProjects, componentsFor, ensureProject, onProjectChange, projectState, tailwindEntryFor } from './project'
 import { tailwindColorNames } from './tailwind'
+import { lintFile } from './lint'
+import { settingsState, updateSettings } from './settings'
 import { runImport } from './tasks'
 import { newPage, Workspace, type Client } from './workspace'
 
@@ -233,6 +235,7 @@ wss.on('connection', (socket) => {
     send({ t: 'projects', projects: workspace.projectInfos() })
   }
   client.home = home
+  send({ t: 'settings', settings: settingsState() })
   /** A project opens on the checkout an agent worked in last (else the one with the newest design), at its last-used file. */
   const openProject = async (projectId: string) => attach(workspace.fileIn(projectId, await workspace.defaultCheckout(projectId)).doc.id)
   /** The file the editor shows, as a path relative to its checkout, to find its counterpart elsewhere. */
@@ -293,6 +296,12 @@ wss.on('connection', (socket) => {
             .catch((e) => send({ t: 'error', message: (e as Error).message }))
           break
         }
+        case 'settings': {
+          updateSettings(msg)
+          const data = JSON.stringify({ t: 'settings', settings: settingsState() } satisfies ServerMsg)
+          for (const c of workspace.clients) if (c.role === 'editor' && c.ws.readyState === 1) c.ws.send(data)
+          break
+        }
         case 'removeProject':
           workspace.projects.remove(msg.projectId)
           workspace.broadcastProjects()
@@ -344,6 +353,11 @@ wss.on('connection', (socket) => {
           else if (msg.t === 'importUrl')
             runImport(f, { url: msg.url, width: msg.width }, 'user', msg.token).catch((e) =>
               console.warn('[paperish] import failed:', (e as Error).message),
+            )
+          else if (msg.t === 'lint')
+            lintFile(f).then(
+              (lint) => send({ t: 'lint', fileId: f.doc.id, lint }),
+              (e) => send({ t: 'lint', fileId: f.doc.id, lint: { designMd: null, issues: [], rules: { count: 0, status: 'none' }, error: (e as Error).message } }),
             )
           else if (msg.t === 'createPage') {
             const { page, root } = newPage(f, msg.name?.trim() || `Page ${f.doc.pages.length + 1}`)

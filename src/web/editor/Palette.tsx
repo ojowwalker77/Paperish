@@ -105,6 +105,8 @@ function useItems(): Item[] {
     if (view?.kind !== 'branch') act('New file', () => store.send({ t: 'createFile' }), undefined, <Icon.Plus size={12} />)
     act('New page', () => store.send({ t: 'createPage' }), undefined, <Icon.Plus size={12} />)
     if (info) act('Copy MCP endpoint', () => void navigator.clipboard.writeText(info.mcp), info.mcp, <Icon.Plug size={12} />)
+    act('Design issues', () => store.setLintOpen(true), 'L')
+    act('Settings…', () => store.setSettingsOpen(true), '⌘,')
     act('All projects', () => store.send({ t: 'home' }), undefined, <Icon.ChevronLeft size={12} />)
 
     // Layers of the current page, with where they sit.

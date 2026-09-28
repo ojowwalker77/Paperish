@@ -311,6 +311,22 @@ html.engine, html.engine body { background: transparent; overflow: visible; heig
 
 .pw-inline-input { flex: 1; min-width: 0; height: 24px; padding: 0 6px; border: 0; border-radius: 6px; outline: none; background: var(--solid); box-shadow: var(--ring); }
 
+/* The design issues card: same sheet as the inspector. */
+.pw-lint-list { display: flex; flex-direction: column; gap: 1px; }
+.pw-lint-row { display: flex; align-items: flex-start; gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: default; }
+.pw-lint-row:hover { background: var(--hover); }
+.pw-lint-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; background: var(--agent); }
+.pw-lint-dot.error { background: var(--danger); }
+.pw-status-item .pw-lint-dot { margin-top: 0; }
+.pw-lint-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pw-lint-detail { color: var(--faint); line-height: 1.45; }
+.pw-lint-fix { flex-shrink: 0; height: 20px; padding: 0 6px; border-radius: 6px; color: var(--muted); font-weight: 500; }
+.pw-lint-fix:hover { color: var(--text); background: var(--active); }
+.pw-lint-all.pw-btn { width: 100%; margin-top: 8px; }
+.pw-lint-foot { color: var(--faint); line-height: 1.5; }
+.pw-lint-foot button { color: var(--text); font-weight: 500; }
+.pw-lint-error { color: var(--danger); }
+
 /* ---- inspector controls ------------------------------------------------------- */
 
 .pw-node-head { display: flex; align-items: center; gap: 8px; }

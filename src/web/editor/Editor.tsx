@@ -22,6 +22,7 @@ import { ImportDialog } from './ImportDialog'
 import { Inspector } from './Inspector'
 import { Palette } from './Palette'
 import { Home } from './Home'
+import { LintCard, SettingsDialog } from './DesignChecks'
 import { ChangesView } from './Repo'
 import { StatusBar } from './StatusBar'
 import { Topbar } from './Topbar'
@@ -44,7 +45,9 @@ export function Editor() {
         {!loaded && <div className="pw-loading">Connecting…</div>}
       </main>
       <Inspector />
+      <LintCard />
       <Palette />
+      <SettingsDialog />
       <ImportDialog />
       <ChangesView />
       {preview && (
@@ -67,7 +70,8 @@ function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !store.home) return e.preventDefault(), store.palette ? store.closePalette() : store.openPalette()
-      if (isTyping(e) || store.palette || store.preview || store.importOpen || store.changesOpen || store.home) return
+      if ((e.metaKey || e.ctrlKey) && e.key === ',') return e.preventDefault(), store.setSettingsOpen(true)
+      if (isTyping(e) || store.palette || store.preview || store.importOpen || store.changesOpen || store.settingsOpen || store.home) return
       if (e.key === '?') return e.preventDefault(), store.setHelpOpen(!store.helpOpen)
       if (e.key === 'Escape' && store.helpOpen) return store.setHelpOpen(false)
       const mod = e.metaKey || e.ctrlKey
@@ -98,6 +102,7 @@ function useShortcuts() {
           return handled(), deleteSelection()
         case 'escape':
           if (store.inspectOpen) return store.setInspectOpen(false)
+          if (store.lintOpen) return store.setLintOpen(false)
           if (store.tool !== 'move') return store.setTool('move')
           return selectParent()
         case 'enter':
@@ -113,6 +118,8 @@ function useShortcuts() {
           return store.setTool('hand')
         case 'p':
           return handled(), openPreview()
+        case 'l':
+          return handled(), store.setLintOpen(!store.lintOpen)
         case 'i':
           return store.selection.length ? (handled(), store.setInspectOpen(!store.inspectOpen)) : undefined
         case 'arrowleft':

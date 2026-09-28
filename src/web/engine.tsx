@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { subtreeIds } from '../shared/ops'
 import { camelToKebab, kebabToCamel } from '../shared/styles'
-import type { PNode } from '../shared/types'
+import type { AuditFact, PNode } from '../shared/types'
 import { ensureFonts, familiesIn, isWebFont } from './render/fonts'
 import { World } from './render/World'
 import { store, useStore } from './store'
@@ -556,7 +556,108 @@ async function diff({ a, b, threshold = 0.1, fit = 'width', cell = 24, tolerance
   return { ...summary, composite: C.c.toDataURL('image/jpeg', 0.85).split(',')[1] }
 }
 
-const METHODS: Record<string, (args: never) => unknown> = { layout, computed, find, overflow, fontCheck, downscale, diff, settle: () => true }
+// ---- design audit ------------------------------------------------------------
+
+let probe: CanvasRenderingContext2D | null = null
+const rgbaCache = new Map<string, number[]>()
+
+/** Any CSS color as sRGB [r, g, b, a], by painting it. */
+function rgba(css: string): number[] {
+  const hit = rgbaCache.get(css)
+  if (hit) return hit
+  if (!probe) {
+    const c = document.createElement('canvas')
+    c.width = c.height = 1
+    probe = c.getContext('2d', { willReadFrequently: true })!
+  }
+  probe.clearRect(0, 0, 1, 1)
+  probe.fillStyle = '#000'
+  probe.fillStyle = css
+  probe.fillRect(0, 0, 1, 1)
+  const d = probe.getImageData(0, 0, 1, 1).data
+  const out = [d[0], d[1], d[2], d[3] / 255]
+  rgbaCache.set(css, out)
+  return out
+}
+
+const over = (top: number[], below: number[]) => [0, 1, 2].map((i) => top[i] * top[3] + below[i] * (1 - top[3]))
+const hex = (c: number[]) => '#' + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')
+
+/** The opaque color behind an element: its and its ancestors' backgrounds, over white. */
+function backdrop(e: Element): number[] {
+  const layers: number[][] = []
+  for (let cur: Element | null = e; cur && !cur.classList.contains('pw-world'); cur = cur.parentElement) {
+    const c = rgba(getComputedStyle(cur).backgroundColor)
+    if (c[3] > 0) layers.push(c)
+    if (c[3] >= 1) break
+  }
+  return layers.reduceRight((below, c) => over(c, below), [255, 255, 255])
+}
+
+function luminance(c: number[]) {
+  const [r, g, b] = c.map((v) => {
+    const s = v / 255
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+function contrast(a: number[], b: number[]) {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+const num = (v: string) => Math.round((parseFloat(v) || 0) * 100) / 100
+
+function audit({ ids }: { ids: string[] }) {
+  const nodes = store.doc!.nodes
+  const out: Record<string, AuditFact[]> = {}
+  for (const root of ids) {
+    const facts: AuditFact[] = []
+    const walk = (id: string, depth: number) => {
+      const n = nodes[id]
+      const e = el(id)
+      if (!n || !e || n.hidden) return
+      const r = e.getBoundingClientRect()
+      const cs = getComputedStyle(e)
+      if (!r.width || !r.height || cs.visibility === 'hidden') return
+      const bg = rgba(cs.backgroundColor)
+      const borderWidth = num(cs.borderTopWidth) + num(cs.borderRightWidth) + num(cs.borderBottomWidth) + num(cs.borderLeftWidth)
+      const f: AuditFact = {
+        id,
+        type: n.type,
+        name: n.name,
+        tag: n.tag,
+        depth,
+        padding: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft].map(num),
+        radius: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius].map(num),
+        width: Math.round(r.width),
+        height: Math.round(r.height),
+      }
+      if (/flex|grid/.test(cs.display)) f.gap = [num(cs.rowGap), num(cs.columnGap)]
+      if (bg[3] > 0) f.background = hex(bg)
+      if (borderWidth > 0) f.border = hex(rgba(cs.borderTopColor))
+      if (n.type === 'Text' && (n.text ?? '').trim()) {
+        const behind = backdrop(e)
+        const fg = over(rgba(cs.color), behind)
+        f.text = (n.text ?? '').trim().slice(0, 120)
+        f.fontSize = num(cs.fontSize)
+        f.fontWeight = num(cs.fontWeight)
+        f.fontFamily = cs.fontFamily.split(',')[0].replace(/['"]/g, '').trim()
+        f.color = hex(fg)
+        f.backdrop = hex(behind)
+        f.contrast = Math.round(contrast(fg, behind) * 100) / 100
+      }
+      facts.push(f)
+      if (n.type !== 'Component') for (const c of n.children) walk(c, depth + 1)
+    }
+    walk(root, 0)
+    out[root] = facts
+  }
+  return out
+}
+
+const METHODS: Record<string, (args: never) => unknown> = { layout, computed, find, overflow, fontCheck, downscale, diff, audit, settle: () => true }
 
 export function installEngine() {
   ;(window as unknown as { __engine: unknown }).__engine = {
