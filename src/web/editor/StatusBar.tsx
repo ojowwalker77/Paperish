@@ -4,6 +4,7 @@ import { shallow, store, useCamera, useStore } from '../store'
 import { pathTo, reveal, zoomTo, zoomToFit } from './actions'
 import { Icon } from './icons'
 import { resolveToken } from './Inspector'
+import { DesignStatus } from './DesignChecks'
 import { TaskPill } from './ImportDialog'
 import { useWorldRects } from './measure'
 import { BranchPicker } from './Repo'
@@ -18,6 +19,7 @@ export function StatusBar() {
     <footer className="pw-statusbar">
       <div className="pw-status-left">
         <BranchPicker />
+        <DesignStatus />
         <AgentActivity />
         <TaskPill />
         <Problems />
@@ -340,6 +342,8 @@ const SHORTCUTS: [string, string][] = [
   ['⌘C  ⌘V', 'Copy, paste HTML'],
   ['⌘Z  ⇧⌘Z', 'Undo, redo'],
   ['I', 'Inspect selection'],
+  ['L', 'Design issues'],
+  ['⌘,', 'Settings'],
   ['⇧⌘H  ⇧⌘L', 'Hide, lock'],
   ['P', 'Preview'],
   ['?', 'This list'],

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ProjectInfo } from '../../shared/types'
 import { store, useStore } from '../store'
+import { SettingsDialog } from './DesignChecks'
 import { Icon } from './icons'
 import { timeAgo } from './Topbar'
 
@@ -9,11 +10,6 @@ import { timeAgo } from './Topbar'
 // repo's .mcp.json for agents.
 
 export function Home() {
-  const projects = useStore((s) => s.projects)
-  const connected = useStore((s) => s.connected)
-  const repos = projects.filter((p) => !p.scratch)
-  const scratch = projects.find((p) => p.scratch)
-
   return (
     <div className="pw-app">
       <header className="pw-topbar pw-home-bar">
@@ -22,37 +18,59 @@ export function Home() {
       <div className="pw-stage">
         <div className="pw-home">
           <div className="pw-home-col">
-            <header className="pw-home-head">
-              <h1>Projects</h1>
-              <button
-                className="pw-preview-btn pw-home-add"
-                disabled={!connected}
-                onClick={() => store.send({ t: 'addProject' })}
-              >
-                <Icon.Plus /> Add project…
-              </button>
-            </header>
-            <div className="pw-home-list">
-              {repos.map((p) => (
-                <ProjectRow key={p.root} project={p} />
-              ))}
-              {!repos.length && connected && (
-                <p className="pw-home-hint">
-                  Add a repo to design in it. Its designs are saved in <code>design/</code> and
-                  versioned with the code, and agents working in the repo connect to it on their
-                  own.
-                </p>
-              )}
-            </div>
-            {scratch && (
-              <div className="pw-home-list scratch">
-                <ProjectRow project={scratch} />
-              </div>
-            )}
+            <Projects />
           </div>
         </div>
+        <SettingsDialog />
       </div>
     </div>
+  )
+}
+
+function Projects() {
+  const projects = useStore((s) => s.projects)
+  const connected = useStore((s) => s.connected)
+  const repos = projects.filter((p) => !p.scratch)
+  const scratch = projects.find((p) => p.scratch)
+
+  return (
+    <>
+      <header className="pw-home-head">
+        <h1>Projects</h1>
+        <span className="pw-btn-row quiet">
+          <button
+            className="pw-btn"
+            title="Settings (⌘,)"
+            onClick={() => store.setSettingsOpen(true)}
+          >
+            Settings
+          </button>
+          <button
+            className="pw-preview-btn pw-home-add"
+            disabled={!connected}
+            onClick={() => store.send({ t: 'addProject' })}
+          >
+            <Icon.Plus /> Add project…
+          </button>
+        </span>
+      </header>
+      <div className="pw-home-list">
+        {repos.map((p) => (
+          <ProjectRow key={p.root} project={p} />
+        ))}
+        {!repos.length && connected && (
+          <p className="pw-home-hint">
+            Add a repo to design in it. Its designs are saved in <code>design/</code> and versioned
+            with the code, and agents working in the repo connect to it on their own.
+          </p>
+        )}
+      </div>
+      {scratch && (
+        <div className="pw-home-list scratch">
+          <ProjectRow project={scratch} />
+        </div>
+      )}
+    </>
   )
 }
 

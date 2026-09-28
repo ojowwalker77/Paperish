@@ -11,7 +11,7 @@ export const HOST = '127.0.0.1'
 export const ORIGIN = `http://${HOST}:${PORT}`
 
 /** App state: the project list, Scratch, and caches. Designs themselves live in each project's repo. */
-const DATA_DIR = path.resolve(
+export const DATA_DIR = path.resolve(
   process.env.PAPERISH_DATA ??
     (app.isPackaged ? app.getPath('userData') : path.join(ROOT_DIR, 'data')),
 )

@@ -23,6 +23,8 @@ import {
   tailwindEntryFor,
 } from './project'
 import { tailwindColorNames } from './tailwind'
+import { lintFile } from './lint'
+import { settingsState, updateSettings } from './settings'
 import { runImport } from './tasks'
 import { newPage, Workspace, type Client } from './workspace'
 
@@ -353,6 +355,8 @@ wss.on('connection', (socket) => {
 
   client.home = home
 
+  send({ t: 'settings', settings: settingsState() })
+
   /** A project opens on the checkout an agent worked in last (else the one with the newest design), at its last-used file. */
   const openProject = async (projectId: string) =>
     attach(workspace.fileIn(projectId, await workspace.defaultCheckout(projectId)).doc.id)
@@ -430,6 +434,19 @@ wss.on('connection', (socket) => {
           break
         }
 
+        case 'settings': {
+          updateSettings(msg)
+
+          const data = JSON.stringify({
+            t: 'settings',
+            settings: settingsState(),
+          } satisfies ServerMsg)
+
+          for (const c of workspace.clients)
+            if (c.role === 'editor' && c.ws.readyState === 1) c.ws.send(data)
+          break
+        }
+
         case 'removeProject':
           workspace.projects.remove(msg.projectId)
           workspace.broadcastProjects()
@@ -490,6 +507,20 @@ wss.on('connection', (socket) => {
             runImport(f, { url: msg.url, width: msg.width }, 'user', msg.token).catch((e) =>
               // SAFETY: runImport rejects with Error for failed imports.
               console.warn('[paperish] import failed:', (e as Error).message),
+            )
+          else if (msg.t === 'lint')
+            lintFile(f).then(
+              (lint) => send({ t: 'lint', fileId: f.doc.id, lint }),
+              (e) => {
+                // SAFETY: lintFile rejects with Error instances for engine failures.
+                const error = (e as Error).message
+
+                send({
+                  t: 'lint',
+                  fileId: f.doc.id,
+                  lint: { designMd: null, issues: [], rules: { count: 0, status: 'none' }, error },
+                })
+              },
             )
           else if (msg.t === 'createPage') {
             const { page, root } = newPage(f, msg.name?.trim() || `Page ${f.doc.pages.length + 1}`)

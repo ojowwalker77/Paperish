@@ -22,6 +22,7 @@ import { ImportDialog } from './ImportDialog'
 import { Inspector } from './Inspector'
 import { Palette } from './Palette'
 import { Home } from './Home'
+import { LintCard, SettingsDialog } from './DesignChecks'
 import { ChangesView } from './Repo'
 import { StatusBar } from './StatusBar'
 import { Topbar } from './Topbar'
@@ -46,7 +47,9 @@ export function Editor() {
           {!loaded && <div className="pw-loading">Connecting…</div>}
         </main>
         <Inspector />
+        <LintCard />
         <Palette />
+        <SettingsDialog />
         <ImportDialog />
         <ChangesView />
         {preview && (
@@ -71,12 +74,16 @@ function useShortcuts() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !store.home)
         return (e.preventDefault(), store.palette ? store.closePalette() : store.openPalette())
 
+      if ((e.metaKey || e.ctrlKey) && e.key === ',')
+        return (e.preventDefault(), store.setSettingsOpen(true))
+
       if (
         isTyping(e) ||
         store.palette ||
         store.preview ||
         store.importOpen ||
         store.changesOpen ||
+        store.settingsOpen ||
         store.home
       )
         return
@@ -134,6 +141,8 @@ function useShortcuts() {
         case 'escape':
           if (store.inspectOpen) return store.setInspectOpen(false)
 
+          if (store.lintOpen) return store.setLintOpen(false)
+
           if (store.tool !== 'move') return store.setTool('move')
 
           return selectParent()
@@ -150,6 +159,8 @@ function useShortcuts() {
           return store.setTool('hand')
         case 'p':
           return (handled(), openPreview())
+        case 'l':
+          return (handled(), store.setLintOpen(!store.lintOpen))
         case 'i':
           return store.selection.length
             ? (handled(), store.setInspectOpen(!store.inspectOpen))

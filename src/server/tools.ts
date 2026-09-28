@@ -9,6 +9,8 @@ import {
   TOKEN_TYPES,
   type Doc,
   type JsonValue,
+  type LintIssue,
+  type LintState,
   type Op,
   type PNode,
   type Styles,
@@ -27,6 +29,7 @@ import { classTokens, tailwindColorNames, tailwindResolver } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
 import { linkProject } from './commands'
 import { compareFiles, openRevision } from './history'
+import { lintFile } from './lint'
 import { runImport } from './tasks'
 import { toJSX, toStaticHTML } from './serialize'
 import { ARTBOARD_GAP, findPlacement } from './placement'
@@ -1940,6 +1943,74 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
           ]),
         ),
       })
+    },
+  )
+
+  tool(
+    'lint_design',
+    "Check a page against the repo's DESIGN.md: contrast, type scale, fonts, spacing and corners (measured in the renderer), plus its Do's and Don'ts (judged by Jev when an OpenRouter key is set). Run it before finish_working_on_nodes and fix what it reports. fix:true applies the unambiguous fixes first.",
+    {
+      nodeId: z
+        .string()
+        .optional()
+        .describe('Only report issues in this artboard (and check its page).'),
+      fix: z.boolean().optional().describe('Apply the available fixes, then report what is left.'),
+      fileId: fileIdArg,
+    },
+    async ({ nodeId, fix, fileId }) => {
+      const f = resolve(fileId)
+
+      const board = nodeId
+        ? (artboardOf(f.doc.nodes, f.node(nodeId).id) ?? f.node(nodeId))
+        : undefined
+
+      const pageId = board ? pageOf(f.doc, board.id)?.id : undefined
+
+      const only = (issues: LintIssue[]) =>
+        board
+          ? issues.filter((i) =>
+              i.nodeIds.some(
+                (id) => id === board.id || artboardOf(f.doc.nodes, id)?.id === board.id,
+              ),
+            )
+          : issues
+
+      let lint = await lintFile(f, pageId)
+      let fixed = 0
+
+      if (fix) {
+        const ops = only(lint.issues).flatMap((i) => i.fix ?? [])
+
+        if (ops.length) {
+          f.transact(ops, 'agent', 'lint_design fix')
+          fixed = ops.length
+          lint = await lintFile(f, pageId)
+        }
+      }
+
+      interface LintResult {
+        designMd: string | null
+        rules: LintState['rules']
+        issues: unknown[]
+        error?: string
+        fixedNodes?: number
+      }
+
+      const result: LintResult = {
+        designMd: lint.designMd,
+        rules: lint.rules,
+        issues: only(lint.issues).map((issue) => {
+          const { fix: fixOps, ...rest } = issue
+
+          return Object.assign(rest, { fixable: !!fixOps })
+        }),
+      }
+
+      if (lint.error) result.error = lint.error
+
+      if (fix) result.fixedNodes = fixed
+
+      return json(result)
     },
   )
 

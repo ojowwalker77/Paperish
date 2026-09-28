@@ -9,6 +9,7 @@ Core rules:
 - Reuse instead of re-writing: duplicate_nodes + set_text_content/update_styles, or <x-paper-clone node-id="..."/> inside write_html.
 - Call get_font_family_info before your first typography decisions.
 - Working in a git worktree? Designs live in each checkout's design/ folder: open_file the .paperish path under your working directory first, and pass its fileId on every call.
+- If the repo has a DESIGN.md, follow its tokens and rules, and run lint_design before you finish.
 - When finished, call finish_working_on_nodes. Never show raw node IDs to the user.`
 
 const INSTRUCTIONS = `# Paperish — agent guide

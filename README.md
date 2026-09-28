@@ -91,6 +91,14 @@ It returns:
 
 Agents can iterate against the number: fix the layers named in the first regions, re-run, repeat.
 
+## Design checks
+
+Paperish checks designs against the repo's design system, so a team without a designer still ships consistent screens:
+- **DESIGN.md.** The repo's [DESIGN.md](https://github.com/google-labs-code/design.md) is the design system: its YAML tokens (typography, spacing, rounded, colors) and its "Do's and Don'ts".
+- **Issues.** The status bar shows the DESIGN.md in use and the page's issue count; L opens the list. Contrast (WCAG AA), text sizes, fonts, spacing and corners are measured in the layout engine and checked against the tokens (without a DESIGN.md: contrast and the 4px grid). Off-scale values have a fix that snaps them to the nearest token.
+- **Do's and Don'ts** are judged by [Jev](https://openrouter.ai/typesafe/jev-1.13), TypeSafe's decision model, through OpenRouter's Decisions API. Add an OpenRouter key in Settings (⌘,) or set `OPENROUTER_API_KEY`; it's kept in the app's data folder, never sent to the editor.
+- **Agents** get the same checks with `lint_design` (`fix: true` applies the fixes), and the guide tells them to run it before finishing.
+
 ## Designs in your repo
 
 Every file is a `.paperish` file in the project's `design/` folder, e.g. `design/checkout.paperish`:
@@ -120,7 +128,7 @@ Names and argument shapes match Paper's MCP (captured in `reference/paper-tools.
 | Repo | `compare_revision` |
 | Codebase | `link_project` `list_components` `set_component_props` |
 | Import | `import_url` |
-| Verify | `visual_diff` (against a URL, image, node or git revision) |
+| Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
 | Write | `create_artboard` `write_html` `set_text_content` `update_styles` `rename_nodes` `duplicate_nodes` `move_nodes` `delete_nodes` `finish_working_on_nodes` |
 | Tokens | `get_tokens` `create_tokens` `set_tokens` |

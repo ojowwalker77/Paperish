@@ -154,6 +154,8 @@ function useItems(): Item[] {
         info.mcp,
         <Icon.Plug size={12} />,
       )
+    act('Design issues', () => store.setLintOpen(true), 'L')
+    act('Settings…', () => store.setSettingsOpen(true), '⌘,')
     act('All projects', () => store.send({ t: 'home' }), undefined, <Icon.ChevronLeft size={12} />)
 
     // Layers of the current page, with where they sit.
