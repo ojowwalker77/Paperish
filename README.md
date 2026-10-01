@@ -193,7 +193,7 @@ The inspector edits common properties, or the node's full CSS directly. It can a
 - **Notarization** runs when `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` and `APPLE_TEAM_ID` (or an App Store Connect API key) are set.
 - **Updates**: the packaged app checks GitHub releases of this repo with electron-updater and installs new versions on quit. `electron-builder --publish always` (with `GH_TOKEN`) uploads the DMG, the zip and `latest-mac.yml`. The updater can only read releases of a public repo.
 - **macOS is arm64 only** for now: the native modules (lightningcss, rolldown) are installed for the building machine, so an Intel build has to be made on (or with dependencies for) x64.
-- **Linux** (x64 AppImage and `.deb`) is built and published by `.github/workflows/release.yml` when a `v*` tag is pushed. The AppImage updates itself; the `.deb` doesn't.
+- **macOS** (arm64 dmg and zip) and **Linux** (x64 AppImage and `.deb`) are built and published by `.github/workflows/release.yml` when a `v*` tag is pushed. The macOS dmg, its zip and the AppImage update themselves; the `.deb` doesn't.
 
 ## Security
 
