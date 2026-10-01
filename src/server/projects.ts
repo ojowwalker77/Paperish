@@ -296,6 +296,13 @@ export function designMdPath(checkout: string): string {
   return isStringValue(rel) && rel ? rel : 'DESIGN.md'
 }
 
+/** A Tailwind v4 stylesheet whose @theme supplies the tokens, relative to the checkout (paperish.json "tokens"). */
+export function tokensPath(checkout: string): string | null {
+  const rel = readMarker(checkout).tokens
+
+  return isStringValue(rel) && rel ? rel : null
+}
+
 /** Point the project at a DESIGN.md outside the root (saved in paperish.json, so it's shared). */
 export function setDesignMdPath(checkout: string, file: string) {
   const rel = path.relative(checkout, file)

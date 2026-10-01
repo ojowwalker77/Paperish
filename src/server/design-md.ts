@@ -3,10 +3,12 @@ import path from 'node:path'
 import { parse } from 'yaml'
 import { z } from 'zod'
 import type { JsonValue } from '../shared/types'
-import { designMdPath } from './projects'
+import { designMdPath, tokensPath } from './projects'
 
 // A repo's DESIGN.md (https://github.com/google-labs-code/design.md): YAML
 // front matter with tokens, and prose whose "Do's and Don'ts" become rules.
+// Tokens can also come from a Tailwind v4 stylesheet's @theme; the front
+// matter wins where both name a token.
 
 interface Typography {
   fontFamily?: string
@@ -24,26 +26,114 @@ export interface DesignSystem {
   rules: string[]
 }
 
-const cache = new Map<string, { mtime: number; ds: DesignSystem }>()
+type Tokens = Omit<DesignSystem, 'path' | 'rules'>
 
-/** The checkout's DESIGN.md, or null when it has none. Throws on front matter that isn't YAML. */
+const cache = new Map<string, { stamp: string; ds: DesignSystem }>()
+
+/** The checkout's DESIGN.md and theme tokens, or null when it has neither. Throws on front matter that isn't YAML. */
 export function readDesignMd(checkout: string): DesignSystem | null {
   const file = path.join(checkout, designMdPath(checkout))
-  let mtime: number
+  const rel = tokensPath(checkout)
+  const css = rel ? path.join(checkout, rel) : null
+  const mdTime = mtimeOf(file)
+  const cssTime = css ? mtimeOf(css) : null
 
+  if (mdTime === null && cssTime === null) return null
+  const key = `${file}\n${css}`
+  const stamp = `${mdTime}\n${cssTime}`
+  const hit = cache.get(key)
+
+  if (hit?.stamp === stamp) return hit.ds
+  const md = mdTime === null ? null : parseDesignMd(fs.readFileSync(file, 'utf8'), file)
+  const theme = css && cssTime !== null ? themeTokens(fs.readFileSync(css, 'utf8')) : null
+
+  const ds: DesignSystem = {
+    path: md?.path ?? css ?? file,
+    colors: { ...theme?.colors, ...md?.colors },
+    typography: { ...theme?.typography, ...md?.typography },
+    rounded: { ...theme?.rounded, ...md?.rounded },
+    spacing: { ...theme?.spacing, ...md?.spacing },
+    rules: md?.rules ?? [],
+  }
+
+  cache.set(key, { stamp, ds })
+
+  return ds
+}
+
+function mtimeOf(file: string): number | null {
   try {
-    mtime = fs.statSync(file).mtimeMs
+    return fs.statSync(file).mtimeMs
   } catch {
     return null
   }
+}
 
-  const hit = cache.get(file)
+function themeTokens(text: string): Tokens {
+  const theme = new Map<string, string>()
+  const root = new Map<string, string>()
 
-  if (hit?.mtime === mtime) return hit.ds
-  const ds = parseDesignMd(fs.readFileSync(file, 'utf8'), file)
-  cache.set(file, { mtime, ds })
+  for (const { head, body } of topLevelBlocks(text.replace(/\/\*[\s\S]*?\*\//g, ''))) {
+    const into = /^@theme\b/.test(head) ? theme : head === ':root' ? root : null
 
-  return ds
+    if (into)
+      for (const d of body.matchAll(/(--[\w-]+)\s*:\s*([^;]+)/g)) into.set(d[1], d[2].trim())
+  }
+
+  const resolve = (v: string, depth = 0): string => {
+    const ref = v.match(/^var\(\s*(--[\w-]+)\s*(?:,\s*(.+))?\)$/)
+
+    if (!ref || depth > 8) return v
+    const next = theme.get(ref[1]) ?? root.get(ref[1]) ?? ref[2]
+
+    return next === undefined ? v : resolve(next.trim(), depth + 1)
+  }
+
+  const out: Tokens = { colors: {}, typography: {}, rounded: {}, spacing: {} }
+
+  for (const [name, raw] of theme) {
+    const value = resolve(raw)
+    const [, group, key] = name.match(/^--(color|radius|spacing|text|font)-(.+)$/) ?? []
+
+    if (!group || !key || key.includes('--') || value === 'initial' || value.startsWith('var('))
+      continue
+
+    if (group === 'color') out.colors[key] = value
+    else if (group === 'radius') out.rounded[key] = value
+    else if (group === 'spacing') out.spacing[key] = value
+    else if (group === 'text') out.typography[`text-${key}`] = { fontSize: value }
+    else if (!key.startsWith('weight-'))
+      out.typography[`font-${key}`] = {
+        fontFamily: value.split(',')[0].replace(/['"]/g, '').trim(),
+      }
+  }
+
+  return out
+}
+
+function topLevelBlocks(css: string): { head: string; body: string }[] {
+  const out: { head: string; body: string }[] = []
+  let depth = 0
+  let start = 0
+  let open = 0
+
+  for (let i = 0; i < css.length; i++) {
+    const c = css[i]
+
+    if (c === '{') {
+      if (depth === 0) open = i
+      depth++
+    } else if (c === '}' && depth > 0) {
+      depth--
+
+      if (depth === 0) {
+        out.push({ head: css.slice(start, open).trim(), body: css.slice(open + 1, i) })
+        start = i + 1
+      }
+    } else if (c === ';' && depth === 0) start = i + 1
+  }
+
+  return out
 }
 
 function parseDesignMd(text: string, file: string): DesignSystem {
