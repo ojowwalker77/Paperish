@@ -6,6 +6,31 @@ import { app, BrowserWindow, dialog, nativeTheme, shell } from 'electron'
 
 app.setName('Paperish')
 
+const HELP = `Usage: paperish [--help] [--version]
+
+A design canvas that agents edit over MCP.
+
+Options:
+  -h, --help     Print this help and exit
+  -v, --version  Print the version and exit
+
+Environment:
+  PAPERISH_PORT  Server port (default 29980); agents connect to /mcp/<project id>
+  PAPERISH_DATA  App data directory
+`
+
+const flags = process.argv.slice(1)
+
+if (flags.some((a) => a === '--help' || a === '-h')) {
+  process.stdout.write(HELP)
+  process.exit(0)
+}
+
+if (flags.some((a) => a === '--version' || a === '-v')) {
+  process.stdout.write(`${app.getVersion()}\n`)
+  process.exit(0)
+}
+
 // One app per machine: a second launch focuses this one (see 'second-instance').
 const primary = app.requestSingleInstanceLock()
 
