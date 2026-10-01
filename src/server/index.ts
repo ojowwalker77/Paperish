@@ -478,6 +478,10 @@ wss.on('connection', (socket) => {
           workspace.projects.remove(msg.projectId)
           workspace.broadcastProjects()
           break
+        case 'renameProject':
+          workspace.projects.rename(msg.projectId, msg.name.trim())
+          workspace.broadcastProjects()
+          break
         case 'createFile': {
           if (!client.fileId) return
           const f = workspace.get(client.fileId)

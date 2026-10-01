@@ -410,6 +410,8 @@ export type ClientMsg =
   | { t: 'openBranch'; branch: string; rel?: string }
   /** Take a project off the list; its files stay in the repo. */
   | { t: 'removeProject'; projectId: string }
+  /** Rename a project; an empty name goes back to the repo's. */
+  | { t: 'renameProject'; projectId: string; name: string }
   | { t: 'open'; fileId: string }
   | { t: 'tx'; ops: Op[]; label?: string }
   | { t: 'undo' }

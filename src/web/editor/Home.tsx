@@ -3,6 +3,7 @@ import type { ProjectInfo } from '../../shared/types'
 import { store, useStore } from '../store'
 import { SettingsDialog } from './DesignChecks'
 import { Icon } from './icons'
+import { InlineInput } from './InlineInput'
 import { timeAgo } from './Topbar'
 
 // The home screen: every project the app knows (Scratch first), and adding a
@@ -76,47 +77,82 @@ function Projects() {
 
 function ProjectRow({ project: p }: { project: ProjectInfo }) {
   const [confirming, setConfirming] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const files = `${p.fileCount} ${p.fileCount === 1 ? 'file' : 'files'}`
+
+  const content = (
+    <>
+      <span className="pw-home-icon">{p.scratch ? <Icon.File /> : <Icon.Folder />}</span>
+      <span className="pw-home-text">
+        {renaming ? (
+          <InlineInput
+            value={p.name}
+            onDone={(v) => {
+              setRenaming(false)
+
+              if (v !== p.name) store.send({ t: 'renameProject', projectId: p.id, name: v })
+            }}
+          />
+        ) : (
+          <strong>{p.name}</strong>
+        )}
+        <span className="pw-home-path">
+          {p.scratch ? 'Designs outside any repo' : p.root.replace(/^\/Users\/[^/]+/, '~')}
+        </span>
+      </span>
+      <span className="pw-home-meta">
+        {files}
+        {p.updatedAt && ` · ${timeAgo(p.updatedAt)}`}
+      </span>
+    </>
+  )
 
   return (
     <div
       className={`pw-home-row ${p.scratch ? '' : 'removable'}`}
       onMouseLeave={() => setConfirming(false)}
     >
-      <button
-        className="pw-home-open"
-        onClick={() => store.send({ t: 'openProject', projectId: p.id })}
-      >
-        <span className="pw-home-icon">{p.scratch ? <Icon.File /> : <Icon.Folder />}</span>
-        <span className="pw-home-text">
-          <strong>{p.name}</strong>
-          <span className="pw-home-path">
-            {p.scratch ? 'Designs outside any repo' : p.root.replace(/^\/Users\/[^/]+/, '~')}
-          </span>
+      {renaming ? (
+        <div className="pw-home-open">{content}</div>
+      ) : (
+        <button
+          className="pw-home-open"
+          onClick={() => store.send({ t: 'openProject', projectId: p.id })}
+        >
+          {content}
+        </button>
+      )}
+      {!p.scratch && !renaming && (
+        <span className="pw-home-actions">
+          {confirming ? (
+            <button
+              className="pw-home-remove confirm"
+              onClick={() => store.send({ t: 'removeProject', projectId: p.id })}
+            >
+              Remove
+            </button>
+          ) : (
+            <>
+              <button
+                className="pw-home-remove"
+                title="Rename"
+                aria-label={`Rename ${p.name}`}
+                onClick={() => setRenaming(true)}
+              >
+                <Icon.Edit size={13} />
+              </button>
+              <button
+                className="pw-home-remove"
+                title="Remove from the list (the repo keeps its files)"
+                aria-label={`Remove ${p.name}`}
+                onClick={() => setConfirming(true)}
+              >
+                <Icon.Close size={13} />
+              </button>
+            </>
+          )}
         </span>
-        <span className="pw-home-meta">
-          {files}
-          {p.updatedAt && ` · ${timeAgo(p.updatedAt)}`}
-        </span>
-      </button>
-      {!p.scratch &&
-        (confirming ? (
-          <button
-            className="pw-home-remove confirm"
-            onClick={() => store.send({ t: 'removeProject', projectId: p.id })}
-          >
-            Remove
-          </button>
-        ) : (
-          <button
-            className="pw-home-remove"
-            title="Remove from the list (the repo keeps its files)"
-            aria-label={`Remove ${p.name}`}
-            onClick={() => setConfirming(true)}
-          >
-            <Icon.Close size={13} />
-          </button>
-        ))}
+      )}
     </div>
   )
 }

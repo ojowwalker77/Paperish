@@ -473,6 +473,10 @@ html.engine body {
   color: var(--danger);
   background: rgba(220, 38, 38, 0.08);
 }
+.pw-file-rename:hover {
+  color: var(--text);
+  background: var(--active);
+}
 .pw-file-confirm {
   background: rgba(220, 38, 38, 0.06);
 }
@@ -2576,11 +2580,15 @@ button.pw-change-name:hover {
   color: var(--faint);
   font-variant-numeric: tabular-nums;
 }
-.pw-home-remove {
+.pw-home-actions {
   position: absolute;
   right: 10px;
   top: 50%;
   transform: translateY(-50%);
+  display: flex;
+  gap: 2px;
+}
+.pw-home-remove {
   height: 26px;
   min-width: 26px;
   display: grid;

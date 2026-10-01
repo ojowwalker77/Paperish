@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { Page } from '../../shared/types'
 import { store, useStore, type Tool } from '../store'
 import { openPreview } from './actions'
 import { Icon } from './icons'
@@ -61,35 +62,44 @@ export function Topbar() {
   )
 }
 
-/** The page part of the breadcrumb: switch, add or rename (double-click) pages. */
+/** The page part of the breadcrumb: switch, add, rename or delete pages. */
 function PageMenu() {
   const pages = useStore((s) => s.doc?.pages) ?? []
   const pageId = useStore((s) => s.pageId)
   const page = pages.find((p) => p.id === pageId)
   const [open, setOpen] = useState(false)
-  const [renaming, setRenaming] = useState(false)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [confirming, setConfirming] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
-  useOutside(ref, () => setOpen(false))
+  useOutside(ref, () => {
+    setOpen(false)
+    setConfirming(null)
+  })
 
   if (!page) return null
 
+  const rename = (p: Page, v: string) => {
+    setRenaming(null)
+
+    if (v && v !== p.name) store.tx([{ t: 'page:rename', pageId: p.id, name: v }], 'rename page')
+  }
+
+  const remove = (p: Page) => {
+    setConfirming(null)
+
+    if (p.id === pageId) store.setPage(pages.find((x) => x.id !== p.id)!.id)
+    store.tx([{ t: 'page:remove', pageId: p.id }], 'delete page')
+  }
+
   return (
     <div className="pw-file-menu" ref={ref}>
-      {renaming ? (
-        <InlineInput
-          value={page.name}
-          onDone={(v) => {
-            setRenaming(false)
-
-            if (v && v !== page.name)
-              store.tx([{ t: 'page:rename', pageId: page.id, name: v }], 'rename page')
-          }}
-        />
+      {renaming === page.id && !open ? (
+        <InlineInput value={page.name} onDone={(v) => rename(page, v)} />
       ) : (
         <button
           className="pw-crumb-btn"
           onClick={() => setOpen(!open)}
-          onDoubleClick={() => setRenaming(true)}
+          onDoubleClick={() => setRenaming(page.id)}
           title="Pages (double-click to rename)"
         >
           <span className="pw-crumb-sep">/</span>
@@ -98,19 +108,58 @@ function PageMenu() {
       )}
       {open && (
         <div className="pw-menu">
-          {pages.map((p) => (
-            <button
-              key={p.id}
-              className={`pw-menu-item ${p.id === pageId ? 'active' : ''}`}
-              onClick={() => {
-                setOpen(false)
+          {pages.map((p) =>
+            renaming === p.id ? (
+              <div key={p.id} className="pw-menu-item">
+                <InlineInput value={p.name} onDone={(v) => rename(p, v)} />
+              </div>
+            ) : confirming === p.id ? (
+              <div key={p.id} className="pw-menu-item pw-file-confirm">
+                <span className="pw-menu-label">Delete “{p.name}”?</span>
+                <button className="pw-file-cancel" onClick={() => setConfirming(null)}>
+                  Cancel
+                </button>
+                <button className="pw-file-delete" autoFocus onClick={() => remove(p)}>
+                  Delete
+                </button>
+              </div>
+            ) : (
+              <div
+                key={p.id}
+                className={`pw-menu-item pw-file-row ${p.id === pageId ? 'active' : ''}`}
+              >
+                <button
+                  className="pw-file-open"
+                  onClick={() => {
+                    setOpen(false)
 
-                if (p.id !== pageId) store.setPage(p.id)
-              }}
-            >
-              <span className="pw-menu-label">{p.name}</span>
-            </button>
-          ))}
+                    if (p.id !== pageId) store.setPage(p.id)
+                  }}
+                  onDoubleClick={() => setRenaming(p.id)}
+                >
+                  <span className="pw-menu-label">{p.name}</span>
+                </button>
+                <button
+                  className="pw-file-trash pw-file-rename"
+                  title="Rename page"
+                  aria-label={`Rename ${p.name}`}
+                  onClick={() => setRenaming(p.id)}
+                >
+                  <Icon.Edit size={13} />
+                </button>
+                {pages.length > 1 && (
+                  <button
+                    className="pw-file-trash"
+                    title="Delete page"
+                    aria-label={`Delete ${p.name}`}
+                    onClick={() => setConfirming(p.id)}
+                  >
+                    <Icon.Trash />
+                  </button>
+                )}
+              </div>
+            ),
+          )}
           <div className="pw-menu-sep" />
           <button
             className="pw-menu-item"

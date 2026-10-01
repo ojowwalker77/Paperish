@@ -177,6 +177,17 @@ export class Projects {
     this.save()
   }
 
+  /** Rename a project in its paperish.json, so every clone shares it; empty goes back to the repo's name. */
+  rename(id: string, name: string) {
+    const p = this.get(id)
+
+    if (p.scratch) throw new Error('Scratch can’t be renamed.')
+    const marker = readMarker(p.root)
+    delete marker.name
+    writeMarker(p.root, name ? { ...marker, name } : marker)
+    this.byRoot.set(p.root, { ...p, name: name || repoName(p.root) })
+  }
+
   /** Move a project to the top of the list. */
   touch(p: Project) {
     if (p.scratch || this.entries[0]?.root === p.root) return
@@ -257,22 +268,17 @@ export class Projects {
   /** Read (or, with `create`, set up) a project folder. Missing folders are skipped, not forgotten. */
   private load(root: string, create = false): Project | null {
     if (!create && !fs.existsSync(root)) return null
-    const dir = path.join(root, DESIGN_DIR)
-    const marker = path.join(dir, MARKER)
-    let id: string | undefined
-
-    try {
-      id = JSON.parse(fs.readFileSync(marker, 'utf8')).id
-    } catch {}
+    const marker = readMarker(root)
+    const name = isStringValue(marker.name) && marker.name ? marker.name : repoName(root)
+    let id = marker.id
 
     if (!isStringValue(id) || !/^[a-z0-9-]{4,40}$/.test(id)) {
-      if (!create) return { id: fileIdFor(root), name: path.basename(root), root, scratch: false }
+      if (!create) return { id: fileIdFor(root), name, root, scratch: false }
       id = randomBytes(5).toString('hex')
-      fs.mkdirSync(dir, { recursive: true })
-      fs.writeFileSync(marker, JSON.stringify({ id }, null, 2) + '\n')
+      writeMarker(root, { ...marker, id })
     }
 
-    return { id, name: repoName(root), root, scratch: false }
+    return { id, name, root, scratch: false }
   }
 
   private save() {
@@ -309,7 +315,10 @@ export function setDesignMdPath(checkout: string, file: string) {
 
   if (!rel || rel.startsWith('..') || path.isAbsolute(rel))
     throw new Error(`Pick a file inside ${checkout}.`)
-  const marker = { ...readMarker(checkout), designMd: rel.split(path.sep).join('/') }
+  writeMarker(checkout, { ...readMarker(checkout), designMd: rel.split(path.sep).join('/') })
+}
+
+function writeMarker(checkout: string, marker: Record<string, JsonValue>) {
   fs.mkdirSync(designDir(checkout), { recursive: true })
   fs.writeFileSync(path.join(designDir(checkout), MARKER), JSON.stringify(marker, null, 2) + '\n')
 }
