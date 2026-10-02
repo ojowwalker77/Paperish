@@ -29,7 +29,7 @@ import { classTokens, tailwindColorNames, tailwindResolver } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
 import { linkProject } from './commands'
 import { compareFiles, openRevision } from './history'
-import { lintFile } from './lint'
+import { checkBoards, lintFile } from './lint'
 import { agentNamed, createThread, reply, setStatus } from './comments'
 import { propose, waitForPick } from './proposals'
 import { runImport } from './tasks'
@@ -261,6 +261,13 @@ async function overflowWarnings(f: OpenFile, artboardIds: string[]): Promise<str
   }
 
   return out
+}
+
+async function designNotes(f: OpenFile, artboardIds: string[]): Promise<string[]> {
+  return (await checkBoards(f, artboardIds)).map(
+    (i) =>
+      `Design check on "${i.artboard}": ${i.title.toLowerCase()}, ${i.detail}${i.fix ? ' (lint_design fix:true snaps it)' : ''}.`,
+  )
 }
 
 /** Real components under these nodes that failed to render, rendered blank or unstyled. */
@@ -1636,6 +1643,7 @@ HTML/CSS rules:
       const notes = [
         ...warnings,
         ...(await overflowWarnings(f, [...touched])),
+        ...(await designNotes(f, [...touched])),
         ...(await componentWarnings(
           f,
           subtrees.map((sub) => sub[0].id),
@@ -1837,7 +1845,10 @@ HTML/CSS rules:
         ),
       ]
 
-      const notes = await overflowWarnings(f, abs.slice(0, 10))
+      const notes = [
+        ...(await overflowWarnings(f, abs.slice(0, 10))),
+        ...(await designNotes(f, abs.slice(0, 10))),
+      ]
 
       return json({
         updated: ops.length,
@@ -2021,7 +2032,7 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
 
   tool(
     'lint_design',
-    "Check a page against the repo's DESIGN.md: contrast, type scale, fonts, spacing and corners (measured in the renderer), plus its Do's and Don'ts (judged by Jev when an OpenRouter key is set). Run it before finish_working_on_nodes and fix what it reports. fix:true applies the unambiguous fixes first.",
+    "Check a page against the repo's DESIGN.md: contrast, type scale, fonts, spacing and corners (measured in the renderer), plus its Do's and Don'ts (judged by Jev when an OpenRouter key is set). Run it before finish_working_on_nodes. fix:true applies the unambiguous fixes first.",
     {
       nodeId: z
         .string()
@@ -2160,13 +2171,27 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
 
   tool(
     'finish_working_on_nodes',
-    'Call when you are done: clears the "agent working" indicator from artboards. No arguments clears all.',
+    'Call when you are done: clears the "agent working" indicator from artboards (no arguments clears all) and returns the design checks still failing on them, with what to offer the user next.',
     { nodeIds: z.array(z.string()).optional(), fileId: fileIdArg },
-    ({ nodeIds, fileId }) => {
+    async ({ nodeIds, fileId }) => {
       const f = resolve(fileId)
+
+      const boards = nodeIds?.length
+        ? nodeIds.map((id) => artboardOf(f.doc.nodes, id)?.id ?? id)
+        : [...f.working]
+
+      const issues = await checkBoards(f, [...new Set(boards)])
       f.finishWorking(nodeIds)
 
-      return json({ working: [...f.working] })
+      if (!boards.length) return json({ working: [...f.working] })
+
+      return json({
+        working: [...f.working],
+        designIssues: issues.map(({ fix, nodeIds: _, ...i }) => ({ ...i, fixable: !!fix })),
+        next: issues.length
+          ? "Tell the user which design checks still fail and offer to fix them in the design. Once they're happy with the design, offer to bring it into the app's code."
+          : "Design checks pass. Offer to bring the design into the app's code.",
+      })
     },
   )
 

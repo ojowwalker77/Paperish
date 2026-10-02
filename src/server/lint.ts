@@ -53,6 +53,29 @@ async function lint(f: OpenFile, pageId = f.pageId): Promise<LintState> {
   return { designMd: ds?.path ?? null, issues, rules, error }
 }
 
+/** The measured checks for some artboards, without Jev: cheap enough to run after every agent edit. */
+export async function checkBoards(f: OpenFile, boardIds: string[]): Promise<LintIssue[]> {
+  let ds: DesignSystem | null = null
+
+  try {
+    ds = f.checkout ? readDesignMd(f.checkout) : null
+  } catch {}
+
+  const out: LintIssue[] = []
+
+  for (const page of f.doc.pages) {
+    const ids = boardIds.filter(
+      (id) => f.doc.nodes[id]?.parent === page.rootId && !f.doc.nodes[id].hidden,
+    )
+
+    if (!ids.length) continue
+    const facts = await engine.call<Record<string, AuditFact[]>>(f, 'audit', { ids }, page.id)
+    out.push(...ids.flatMap((id) => checkTokens(f, id, facts[id] ?? [], ds)))
+  }
+
+  return out
+}
+
 const running = new Map<string, Promise<LintState>>()
 
 /** One check at a time per file. */
