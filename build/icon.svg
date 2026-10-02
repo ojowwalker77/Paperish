@@ -1,17 +1,25 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2a2a"/><stop offset="1" stop-color="#141414"/></linearGradient>
-    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ececea"/></linearGradient>
-    <filter id="base" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.3"/></filter>
-  </defs>
-  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#base)"/>
-  <rect x="101" y="101" width="822" height="822" rx="184" fill="none" stroke="#fff" stroke-opacity="0.08" stroke-width="2"/>
-  <path d="M340 290 H594 L684 380 V734 H340 Z" fill="url(#sheet)"/>
-  <path d="M594 290 V380 H684 Z" fill="#c9c9c6"/>
-  <rect x="292" y="242" width="440" height="540" rx="6" fill="none" stroke="#0a84ff" stroke-width="12"/>
-  <g fill="#1c1c1c" stroke="#0a84ff" stroke-width="12">
-    <rect x="266" y="216" width="52" height="52" rx="10"/><rect x="706" y="216" width="52" height="52" rx="10"/>
-    <rect x="266" y="756" width="52" height="52" rx="10"/><rect x="706" y="756" width="52" height="52" rx="10"/>
+<defs>
+<linearGradient id="reveal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff9a4a"/><stop offset="1" stop-color="#f2620a"/></linearGradient>
+<linearGradient id="paper" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#f1f0ec"/></linearGradient>
+<linearGradient id="flap" gradientUnits="userSpaceOnUse" x1="700" y1="700" x2="520" y2="520"><stop offset="0" stop-color="#b9b6ae"/><stop offset="0.18" stop-color="#e7e5df"/><stop offset="0.55" stop-color="#ffffff"/><stop offset="0.85" stop-color="#f6f5f1"/><stop offset="1" stop-color="#dcd9d2"/></linearGradient>
+<linearGradient id="crease" gradientUnits="userSpaceOnUse" x1="700" y1="700" x2="760" y2="760"><stop offset="0" stop-color="#5a2200" stop-opacity="0.28"/><stop offset="1" stop-color="#5a2200" stop-opacity="0"/></linearGradient>
+<pattern id="dots" width="44" height="44" patternUnits="userSpaceOnUse" x="12" y="12"><circle cx="22" cy="22" r="3.6" fill="#000" fill-opacity="0.11"/></pattern>
+<clipPath id="body"><rect x="100" y="100" width="824" height="824" rx="185"/></clipPath>
+<clipPath id="sheet"><polygon points="0,0 1024,0 1024,376 376,1024 0,1024"/></clipPath>
+<filter id="base" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.26"/></filter>
+<filter id="blur" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="16"/></filter>
+</defs>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#reveal)" filter="url(#base)"/>
+<g clip-path="url(#body)">
+  <rect x="0" y="0" width="1024" height="1024" fill="url(#crease)"/>
+  <g clip-path="url(#sheet)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#paper)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#dots)"/>
+    <path d="M924,476 C856.5,506 595,529 520,520 C529,595 506,856.5 476,924 Z" transform="translate(-22 -22)" fill="#000" opacity="0.22" filter="url(#blur)"/>
   </g>
-  <path d="M700 700 L700 880 L742 840 L772 904 L802 890 L772 826 L830 826 Z" fill="#ff7a1a" stroke="#141414" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M924,476 C856.5,506 595,529 520,520 C529,595 506,856.5 476,924 Z" fill="url(#flap)"/>
+  <path d="M924,476 C856.5,506 595,529 520,520 C529,595 506,856.5 476,924 Z" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width="2"/>
+</g>
+<rect x="101" y="101" width="822" height="822" rx="184" fill="none" stroke="#000" stroke-opacity="0.06" stroke-width="2"/>
 </svg>
