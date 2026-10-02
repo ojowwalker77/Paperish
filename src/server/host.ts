@@ -1,4 +1,4 @@
-import type { JsonValue, ThemeSetting } from '../shared/types'
+import type { JsonValue, ThemeSetting, UpdateState } from '../shared/types'
 
 // The server runs in a utility process (src/app/server.ts), off the thread that
 // routes input to the app's windows. Windows, dialogs, the trash and the app
@@ -66,8 +66,7 @@ export type ServerMsg =
 export type MainMsg =
   | { t: 'reply'; id: number; value?: HostValue; error?: string }
   | { t: 'event'; page: number; event: string; params: JsonValue }
-  /** A new version downloaded and ready to install. */
-  | { t: 'update'; version: string }
+  | { t: 'update'; update: UpdateState }
   | { t: 'stop' }
 
 const pending = new Map<number, { resolve: (v: HostValue) => void; reject: (e: Error) => void }>()

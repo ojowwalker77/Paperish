@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, dialog, nativeTheme, shell, utilityProcess } from 'electron'
 import type { HostApi, HostArgs, HostValue, MainMsg, ServerMsg } from '../server/host'
+import type { UpdateState } from '../shared/types'
 import { Page } from './browser'
 
 // Electron routes input to every window through the main process, so the
@@ -122,8 +123,8 @@ export function startServer(installUpdate: () => void) {
       else child.kill()
     })
 
-  /** Tell the editors a new version is ready to install. */
-  const updateReady = (version: string) => post({ t: 'update', version })
+  /** Tell the editors how a new version's download is going. */
+  const updateState = (update: UpdateState) => post({ t: 'update', update })
 
-  return { ready: started, stop, updateReady }
+  return { ready: started, stop, updateState }
 }
