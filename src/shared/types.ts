@@ -403,6 +403,8 @@ export type ClientMsg =
   | { t: 'home' }
   /** Pick a folder with the system dialog and add it as a project. */
   | { t: 'addProject' }
+  /** Ask for every project, e.g. to switch to another from the editor. */
+  | { t: 'projects' }
   | { t: 'openProject'; projectId: string }
   /** Switch to another checkout of the current project (the same file there, if it exists). */
   | { t: 'openCheckout'; checkout: string }

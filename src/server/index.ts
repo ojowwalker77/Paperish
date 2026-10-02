@@ -434,6 +434,9 @@ wss.on('connection', (socket) => {
         case 'open':
           attach(msg.fileId)
           break
+        case 'projects':
+          send({ t: 'projects', projects: workspace.projectInfos() })
+          break
         case 'openProject':
           openProject(msg.projectId).catch(fail)
           break

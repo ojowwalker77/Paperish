@@ -287,30 +287,9 @@ html.engine body {
   position: relative;
   min-width: 0;
 }
-.pw-file-name {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  max-width: 320px;
-  height: 28px;
-  padding: 0 6px;
-  border-radius: 7px;
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transition: background 0.15s var(--ease);
-}
-.pw-file-name:hover {
-  background: var(--hover);
-}
 .pw-chev {
   color: var(--ghost);
   font-size: 8px;
-  flex-shrink: 0;
-}
-.pw-file-project {
   flex-shrink: 0;
 }
 .pw-file-title {
@@ -622,6 +601,184 @@ html.engine body {
   top: 8px;
   right: 8px;
   z-index: 1;
+}
+
+/* The navigator: project, files and the open file's pages, floating over the canvas. */
+.pw-nav {
+  position: absolute;
+  z-index: 40;
+  left: 10px;
+  top: 10px;
+  bottom: 10px;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 12px;
+  background: var(--solid);
+  box-shadow: var(--float);
+  animation: pw-fade 0.15s var(--ease);
+}
+.pw-nav-project {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  text-align: left;
+  background: var(--hover);
+}
+.pw-nav-project:hover {
+  background: var(--active);
+}
+.pw-nav-mark {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  flex-shrink: 0;
+}
+.pw-nav-project-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.pw-nav-project-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+.pw-nav-project-text span {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pw-nav-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin-top: 8px;
+  scrollbar-width: thin;
+}
+.pw-nav-head {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--faint);
+}
+.pw-nav-add {
+  width: 22px;
+  height: 22px;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  color: var(--faint);
+}
+.pw-nav-add:hover {
+  color: var(--text);
+  background: var(--hover);
+}
+.pw-nav-row {
+  width: 100%;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 7px;
+  text-align: left;
+  color: var(--text);
+}
+.pw-nav-row.pw-file-row {
+  padding: 0;
+}
+.pw-nav-row:hover {
+  background: var(--hover);
+}
+.pw-nav-row.active {
+  background: var(--active);
+}
+.pw-nav-row svg {
+  color: var(--faint);
+}
+.pw-nav-row.open {
+  padding-left: 8px;
+  font-weight: 600;
+}
+.pw-nav-row .pw-file-open {
+  padding: 7px 8px;
+  gap: 6px;
+}
+.pw-nav-page,
+.pw-nav-page.pw-file-row .pw-file-open {
+  padding-left: 22px;
+}
+.pw-nav-page.pw-file-row {
+  padding-left: 0;
+}
+.pw-nav-row.faint {
+  color: var(--muted);
+}
+.pw-nav-twisty {
+  width: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.pw-nav-twisty.down svg {
+  transform: rotate(90deg);
+}
+.pw-nav-foot {
+  padding-top: 6px;
+  border-top: 1px solid var(--hairline);
+}
+.pw-nav-foot .pw-nav-row {
+  color: var(--muted);
+}
+.pw-nav .pw-menu {
+  width: 100%;
+}
+.pw-icon-btn.on {
+  color: var(--text);
+  background: var(--active);
+}
+.pw-nav-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 420px;
+  height: 28px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pw-nav-title:hover {
+  background: var(--hover);
+}
+.pw-nav-title-page {
+  color: var(--muted);
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .pw-inspect .pw-node-head {
   padding-right: 40px;
@@ -2634,11 +2791,6 @@ button.pw-change-name:hover {
   color: var(--danger);
   font-weight: 500;
 }
-.pw-file-project {
-  color: var(--faint);
-  font-weight: 400;
-  margin-right: 0;
-}
 
 /* ---- checkouts ------------------------------------------------------------------- */
 
@@ -2808,21 +2960,6 @@ button.pw-status-item:hover,
 
 /* ---- title bar: breadcrumb and command center ---------------------------------------- */
 
-.pw-crumb-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 6px 0 0;
-  border-radius: 7px;
-  font-size: 13px;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.pw-crumb-btn:hover {
-  background: var(--hover);
-  color: var(--text);
-}
 .pw-crumb-sep {
   color: var(--ghost);
   margin-right: 4px;

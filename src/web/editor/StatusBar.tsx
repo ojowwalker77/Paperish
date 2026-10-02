@@ -334,6 +334,7 @@ function ZoomMenu() {
 
 const SHORTCUTS: [string, string][] = [
   ['⌘K', 'Find anything, run anything'],
+  ['⌘\\', 'Project, files and pages'],
   ['V  F  T  H', 'Move, frame, text, hand'],
   ['Space drag', 'Pan'],
   ['⌘ scroll', 'Zoom'],

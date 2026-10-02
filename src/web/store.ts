@@ -96,6 +96,8 @@ class Store {
   error: string | null = null
   settings: SettingsState | null = null
   settingsOpen = false
+  /** The navigator (⌘\\): project, files and pages over the canvas. */
+  navOpen = loadFlag('paperish:navOpen', true)
   /** A downloaded update's version, installed by restarting. */
   update: string | null = null
   /** Design checks of the current page. */
@@ -642,6 +644,16 @@ class Store {
     this.emit()
   }
 
+  setNavOpen(open: boolean) {
+    this.navOpen = open
+
+    try {
+      localStorage.setItem('paperish:navOpen', String(open))
+    } catch {}
+
+    this.emit()
+  }
+
   setChangesOpen(open: boolean) {
     this.changesOpen = open
     this.emit()
@@ -702,6 +714,16 @@ class Store {
   }
 
   needsFit = false
+}
+
+function loadFlag(key: string, fallback: boolean): boolean {
+  try {
+    const saved = localStorage.getItem(key)
+
+    if (saved !== null) return saved === 'true'
+  } catch {}
+
+  return fallback
 }
 
 function loadPreviewMode(): PreviewMode {

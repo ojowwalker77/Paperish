@@ -20,6 +20,7 @@ import { Viewer } from '../Viewer'
 import { Canvas } from './Canvas'
 import { ImportDialog } from './ImportDialog'
 import { Inspector } from './Inspector'
+import { Navigator } from './Navigator'
 import { Palette } from './Palette'
 import { Home } from './Home'
 import { LintCard, SettingsDialog } from './DesignChecks'
@@ -48,6 +49,7 @@ export function Editor() {
           <Canvas />
           {!loaded && <div className="pw-loading">Connecting…</div>}
         </main>
+        <Navigator />
         <Inspector />
         <LintCard />
         <PickBar />
@@ -77,6 +79,9 @@ function useShortcuts() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k' && !store.home)
         return (e.preventDefault(), store.palette ? store.closePalette() : store.openPalette())
+
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\' && !store.home)
+        return (e.preventDefault(), store.setNavOpen(!store.navOpen))
 
       if ((e.metaKey || e.ctrlKey) && e.key === ',')
         return (e.preventDefault(), store.setSettingsOpen(true))
