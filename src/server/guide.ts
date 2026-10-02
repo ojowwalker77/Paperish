@@ -59,6 +59,7 @@ When the user's codebase is linked (link_project, or already linked — see get_
 - duplicate_nodes returns a descendantIdMap so you can edit the copy immediately.
 - move_nodes reorders/reparents while keeping ids.
 - find_nodes locates nodes by text or computed style (e.g. every node using #3B82F6) before bulk edits.
+- Versions: the user browses a page's artboards as views, and artboards named "<view> @v2", "<view> @v3" are versions of "<view>". To rework a screen without losing the old one, duplicate_nodes its artboard and rename the copy to the next version.
 
 ## 6. Let the user pick
 When a choice is the user's to make (which layout, how dense, what to emphasize, which tone), propose instead of deciding:

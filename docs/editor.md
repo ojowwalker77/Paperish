@@ -32,6 +32,19 @@ The frame design is adapted from [liquidframe](https://github.com/CVERInc/liquid
 
 The inspector edits common properties, or the node's full CSS directly. It can also copy the selection as Tailwind JSX, inline-style JSX, or HTML.
 
+## Views and versions
+
+The navigator (⌘\) lists each page as a folder of views: its artboards. Artboards named `Checkout @v2`, `Checkout @v3` are versions of the view `Checkout`, so the tree shows one row with the latest version number.
+
+Click a view to show it alone on the canvas, with its versions in a dock below. Click the page to see all of its artboards again.
+
+| Keys | Action |
+| --- | --- |
+| `[` / `]` | Previous / next version |
+| ⌥↑ / ⌥↓ | Previous / next view on the page |
+| ⇧⌘N | Copy the version shown into a new one |
+| Esc | Back to the whole page |
+
 ## Comments
 
 Press C (or the comment count in the status bar) for comment mode: pins show on the canvas and the threads open in a panel. Click a layer to pin a comment to it; reply, resolve or delete from the panel. You're named from the checkout's `git config user.name`; agents sign with their own name, and their pins are orange. Comments live in the `.paperish` file and stay out of undo, so undoing an edit never drops one. Agents see `openComments` in `get_basic_info`, reply with `reply_to_comment_thread` once they've addressed one, then resolve it; `create_comment_thread` leaves a note for later.

@@ -71,7 +71,7 @@ export async function linkProject(
   return ensureProject(root)
 }
 
-export function duplicate(f: OpenFile, ids: string[]): string[] {
+export function duplicate(f: OpenFile, ids: string[], name?: string): string[] {
   const ops: Op[] = []
   const created: string[] = []
 
@@ -98,6 +98,8 @@ export function duplicate(f: OpenFile, ids: string[]): string[] {
       if (parent.type !== 'Root')
         copy[0].styles.top = `${(parseFloat(String(src.styles.top ?? 0)) || 0) + 16}px`
     }
+
+    if (name) copy[0] = { ...copy[0], name }
 
     ops.push({
       t: 'insert',
