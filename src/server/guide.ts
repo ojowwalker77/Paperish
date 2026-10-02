@@ -11,8 +11,8 @@ Core rules:
 - Working in a git worktree? Designs live in each checkout's design/ folder: open_file the .paperish path under your working directory first, and pass its fileId on every call.
 - Taste calls (layout, density, hierarchy, tone): don't guess and don't ask in chat. Build 2 to 4 alternative artboards, call propose_options, then wait_for_pick.
 - Open comments are the user's feedback (get_basic_info.openComments): read them with list_comment_threads, and after addressing one, reply_to_comment_thread with what changed, then resolve it.
-- If the repo has a DESIGN.md, follow its tokens and rules, and run lint_design before you finish.
-- When finished, call finish_working_on_nodes. Never show raw node IDs to the user.`
+- write_html and update_styles report design checks (contrast, type scale, fonts, spacing, corners) for the artboards they touch: fix them as you go. If the repo has a DESIGN.md, follow its tokens and rules, and run lint_design before you finish.
+- When finished, call finish_working_on_nodes. Then tell the user which design checks still fail and offer to fix them in the design; once the design is good, offer to bring it into the app's code. Never show raw node IDs to the user.`
 
 const INSTRUCTIONS = `# Paperish — agent guide
 
@@ -100,7 +100,10 @@ Every file is a .paperish file in the project's design/ folder (get_basic_info.f
 Git worktrees: each checkout of the repo (the main one and every worktree) has its own design/ folder, so your edits land in the checkout you're working in. If you work in a worktree, start with open_file on the .paperish path under your working directory (or list_files / create_file with cwd), then pass that fileId on every call. Calls without a fileId go to the checkout your MCP client reports; when there are several checkouts and it reports none, they fail and ask for a fileId or cwd.
 
 ## 12. Wrap up
-Call finish_working_on_nodes when done so the "agent working" indicator clears.`
+1. Run lint_design and fix what's clearly wrong (fix:true snaps off-scale values to the tokens).
+2. Call finish_working_on_nodes so the "agent working" indicator clears. It returns the design checks still failing.
+3. End the turn by telling the user what's left and offering to fix it in the design. Don't touch the app's code yet.
+4. Once the user is happy with the design, offer to bring it into the app (section 10).`
 
 const MOBILE_STATUS_BAR = `Paste this as the first child of a 390px-wide mobile artboard (write_html insert-children). Change color to #FFFFFF on dark backgrounds.
 
