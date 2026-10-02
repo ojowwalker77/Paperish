@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { store, useStore, type Tool } from '../store'
 import { openPreview } from './actions'
 import { Icon } from './icons'
@@ -89,16 +89,30 @@ function Title() {
   )
 }
 
-/** Shown once a new version has downloaded: restarting installs it. */
+/** A new version's download, then the restart that installs it. */
 export function UpdateButton() {
-  const version = useStore((s) => s.update)
+  const update = useStore((s) => s.update)
 
-  if (!version) return null
+  if (!update) return null
+
+  // SAFETY: the download's progress as a custom property; React passes --* through to CSS.
+  const progress = { '--p': `${update.percent}%` } as CSSProperties
+
+  if (!update.ready)
+    return (
+      <span
+        className="pw-update-progress"
+        title={`Downloading Paperish ${update.version}`}
+        style={progress}
+      >
+        Updating {update.percent}%
+      </span>
+    )
 
   return (
     <button
       className="pw-update-btn"
-      title={`Paperish ${version} is ready. Restart to install it.`}
+      title={`Paperish ${update.version} is ready. Restart to install it.`}
       onClick={() => store.send({ t: 'installUpdate' })}
     >
       Restart to update

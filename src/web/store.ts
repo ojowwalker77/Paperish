@@ -19,6 +19,7 @@ import type {
   SettingsState,
   ThemeSetting,
   TaskState,
+  UpdateState,
 } from '../shared/types'
 
 export interface Camera {
@@ -98,8 +99,7 @@ class Store {
   settingsOpen = false
   /** The navigator (⌘\\): project, files and pages over the canvas. */
   navOpen = loadFlag('paperish:navOpen', true)
-  /** A downloaded update's version, installed by restarting. */
-  update: string | null = null
+  update: UpdateState | null = null
   /** Design checks of the current page. */
   lint: LintState | null = null
   lintOpen = false
@@ -309,7 +309,7 @@ class Store {
         this.scheduleLint(0)
         break
       case 'update':
-        this.update = msg.version
+        this.update = msg.update
         break
       case 'lint':
         if (msg.fileId === this.doc?.id) this.lint = msg.lint

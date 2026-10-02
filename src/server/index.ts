@@ -4,7 +4,14 @@ import path from 'node:path'
 import { WebSocketServer } from 'ws'
 import { hostHeaderValidation, originValidation, toNodeHandler } from '@modelcontextprotocol/node'
 import { createMcpHandler } from '@modelcontextprotocol/server'
-import type { ClientMsg, RepoCommit, RepoCompare, RepoState, ServerMsg } from '../shared/types'
+import type {
+  ClientMsg,
+  RepoCommit,
+  RepoCompare,
+  RepoState,
+  ServerMsg,
+  UpdateState,
+} from '../shared/types'
 import { assetPath, EXT_MIME } from './assets'
 import { EXPORTS_DIR, HOST, IS_PROD, ORIGIN, PORT, ROOT_DIR } from './config'
 import { engine } from './engine'
@@ -322,13 +329,13 @@ server.on('upgrade', (req, socket, head) => {
   wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req))
 })
 
-/** A downloaded update, offered to every editor until the app restarts into it. */
-let update: string | null = null
+/** A new version, shown to every editor while it downloads and until the app restarts into it. */
+let update: UpdateState | null = null
 
 onMain((msg) => {
   if (msg.t !== 'update') return
-  update = msg.version
-  const data = JSON.stringify({ t: 'update', version: update } satisfies ServerMsg)
+  update = msg.update
+  const data = JSON.stringify({ t: 'update', update } satisfies ServerMsg)
 
   for (const c of workspace.clients)
     if (c.role === 'editor' && c.ws.readyState === 1) c.ws.send(data)
@@ -396,7 +403,7 @@ wss.on('connection', (socket) => {
 
   send({ t: 'settings', settings: settingsState() })
 
-  if (update) send({ t: 'update', version: update })
+  if (update) send({ t: 'update', update })
 
   /** A project opens on the checkout an agent worked in last (else the one with the newest design), at its last-used file. */
   const openProject = async (projectId: string) =>

@@ -320,6 +320,13 @@ export interface SettingsState {
 
 export type ThemeSetting = 'system' | 'light' | 'dark'
 
+/** A new version downloading in the background, then ready to install by restarting. */
+export interface UpdateState {
+  version: string
+  percent: number
+  ready: boolean
+}
+
 /** What the layout engine measures of one rendered node for design checks. */
 export type AuditFact = {
   id: string
@@ -477,8 +484,7 @@ export type ServerMsg =
   | { t: 'repo'; repo: RepoState | null }
   | { t: 'error'; message: string }
   | { t: 'settings'; settings: SettingsState }
-  /** A new version is downloaded; restarting installs it. */
-  | { t: 'update'; version: string }
+  | { t: 'update'; update: UpdateState }
   | { t: 'lint'; fileId: string; lint: LintState }
   | { t: 'proposal'; proposal: Proposal | null }
   /** The thread this connection just created, so its editor can open it. */

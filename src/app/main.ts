@@ -147,5 +147,5 @@ void app.whenReady().then(async () => {
 
   openEditor()
 
-  if (app.isPackaged) install = await watchUpdates(server.updateReady)
+  if (app.isPackaged) install = await watchUpdates(server.updateState)
 })

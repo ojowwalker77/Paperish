@@ -218,11 +218,13 @@ html.engine body {
   font-weight: 500;
   color: var(--muted);
 }
-.pw-home-bar .pw-update-btn {
+.pw-home-bar .pw-update-btn,
+.pw-home-bar .pw-update-progress {
   margin-left: auto;
 }
 
-.pw-update-btn {
+.pw-update-btn,
+.pw-update-progress {
   height: 24px;
   margin-right: 6px;
   padding: 0 10px;
@@ -235,6 +237,20 @@ html.engine body {
 }
 .pw-update-btn:hover {
   background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.pw-update-progress {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  justify-content: center;
+  min-width: 112px;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(
+    to right,
+    var(--accent-soft) var(--p),
+    color-mix(in srgb, var(--muted) 8%, transparent) var(--p)
+  );
+  cursor: default;
 }
 
 .pw-icon-btn {
