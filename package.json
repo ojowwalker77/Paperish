@@ -54,6 +54,27 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
+  "knip": {
+    "entry": [
+      "src/app/main.ts",
+      "src/app/server.ts",
+      "scripts/*.ts"
+    ],
+    "project": [
+      "src/**/*",
+      "scripts/**/*"
+    ],
+    "ignore": [
+      "tools/**",
+      "src/server/import/extract.js"
+    ],
+    "rules": {
+      "files": "error",
+      "dependencies": "error",
+      "exports": "error",
+      "types": "error"
+    }
+  },
   "main": "src/app/dev.mjs",
   "productName": "Paperish",
   "desktopName": "design.paperish.app.desktop",
