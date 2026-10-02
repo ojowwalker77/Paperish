@@ -25,6 +25,10 @@ const MAX_EDGE = 1800
 
 const MAX_PIXELS = 2_400_000
 
+const VIEWPORT = { width: 1600, height: 1000 }
+
+const MAX_VIEWPORT_EDGE = 8192
+
 const IMPORT_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
 
@@ -44,7 +48,7 @@ class Engine {
     if (existing && !existing.isClosed()) return existing
 
     const ready = (async () => {
-      const page = await Page.open({ width: 1600, height: 1000 })
+      const page = await Page.open(VIEWPORT)
       page.on('console-error', (m) => console.warn('[engine]', m))
       page.on('crash', (reason) => console.warn('[engine] page crashed:', reason))
       await page.goto(`${ORIGIN}/?engine=1&file=${encodeURIComponent(fileId)}`)
@@ -117,7 +121,27 @@ class Engine {
         color: { r: 0, g: 0, b: 0, a: 0 },
       })
 
+    // Chromium paints out-of-process frames (real components) only inside the viewport.
+    const view = {
+      width: Math.min(Math.max(VIEWPORT.width, Math.ceil(r.width)), MAX_VIEWPORT_EDGE),
+      height: Math.min(Math.max(VIEWPORT.height, Math.ceil(r.height)), MAX_VIEWPORT_EDGE),
+    }
+
+    const grown = view.width !== VIEWPORT.width || view.height !== VIEWPORT.height
+
     try {
+      if (grown)
+        await page.send('Emulation.setDeviceMetricsOverride', {
+          ...view,
+          deviceScaleFactor: 0,
+          mobile: false,
+        })
+      await page.evaluate(`window.scrollTo(${r.pageX}, ${r.pageY})`)
+      await this.call(f, 'settle', {}, pageId)
+      await page.evaluate(
+        () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))),
+      )
+
       const data = await page.screenshot({
         format,
         quality: opts.quality ?? 88,
@@ -133,6 +157,8 @@ class Engine {
       }
     } finally {
       if (opts.transparent) await page.send('Emulation.setDefaultBackgroundColorOverride', {})
+
+      if (grown) await page.send('Emulation.clearDeviceMetricsOverride', {})
     }
   }
 
