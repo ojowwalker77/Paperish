@@ -111,7 +111,7 @@ function boards(doc: Doc): Map<string, Board> {
   return out
 }
 
-const UI_WIDTH = 1200
+const UI_WIDTH = 3200
 
 async function thumb(
   f: OpenFile,
