@@ -29,6 +29,8 @@ import { CommentsPanel } from './Comments'
 import { ChangesView } from './Repo'
 import { StatusBar } from './StatusBar'
 import { Topbar } from './Topbar'
+import { VersionDock } from './VersionDock'
+import { newVersion, stepVersion, stepView, unfocus } from './views'
 
 export function Editor() {
   // Coarse on purpose: this component owns the whole editor tree.
@@ -53,6 +55,7 @@ export function Editor() {
         <Inspector />
         <LintCard />
         <PickBar />
+        <VersionDock />
         <CommentsPanel />
         <Palette />
         <SettingsDialog />
@@ -122,6 +125,8 @@ function useShortcuts() {
 
       if (mod && k === 'd') return (handled(), void duplicateSelection())
 
+      if (mod && e.shiftKey && k === 'n' && store.focus) return (handled(), void newVersion())
+
       if (mod && k === 'a') {
         handled()
 
@@ -146,6 +151,12 @@ function useShortcuts() {
 
       if (e.shiftKey && e.code === 'Digit1') return (handled(), zoomToFit())
 
+      if (e.altKey && (k === 'arrowup' || k === 'arrowdown'))
+        return (handled(), stepView(k === 'arrowup' ? -1 : 1))
+
+      if (store.focus && (e.key === '[' || e.key === ']'))
+        return (handled(), stepVersion(e.key === '[' ? -1 : 1))
+
       if (e.shiftKey && e.code === 'Digit2') return (handled(), zoomToFit(store.selection))
 
       switch (k) {
@@ -162,6 +173,8 @@ function useShortcuts() {
           if (store.activeThread) return store.openThread(null)
 
           if (store.tool !== 'move') return store.setTool('move')
+
+          if (!store.selection.length && store.focus) return unfocus()
 
           return selectParent()
         case 'enter':

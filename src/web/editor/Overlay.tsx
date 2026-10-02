@@ -76,8 +76,7 @@ export function Overlay({
 const Labels = memo(function Labels() {
   const working = useStore((s) => s.working)
 
-  const rootChildren =
-    useStore((s) => (s.page ? s.doc?.nodes[s.page.rootId]?.children : undefined)) ?? []
+  const rootChildren = useStore((s) => s.boards, shallow)
 
   // Only what the labels show, so edits deep inside artboards don't re-render this.
   const labels = useStore((s) => rootChildren.map((id) => s.doc?.nodes[id]), shallow)

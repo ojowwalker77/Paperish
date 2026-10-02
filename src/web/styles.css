@@ -760,6 +760,32 @@ html.engine body {
 .pw-nav-twisty.down svg {
   transform: rotate(90deg);
 }
+.pw-nav-views {
+  display: flex;
+  flex-direction: column;
+  margin: 1px 0 2px 27px;
+  padding-left: 6px;
+  border-left: 1px solid var(--hairline);
+}
+.pw-nav-view {
+  min-height: 28px;
+  color: var(--muted);
+}
+.pw-nav-view.active {
+  color: var(--text);
+}
+.pw-nav-agent {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--agent);
+}
+.pw-nav-version {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
 .pw-nav-foot {
   padding-top: 6px;
   border-top: 1px solid var(--hairline);
@@ -2024,6 +2050,81 @@ a.pw-path:hover {
 .pw-pick-note:focus {
   background: var(--solid);
   box-shadow: var(--ring);
+}
+.pw-dock {
+  position: absolute;
+  z-index: 40;
+  left: 50%;
+  bottom: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: calc(100% - 24px);
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--solid);
+  box-shadow: var(--float);
+  animation: pw-fade 0.15s var(--ease);
+}
+.pw-dock.nav {
+  left: calc(50% + 135px);
+}
+.pw-dock > kbd {
+  width: 20px;
+  text-align: center;
+  color: var(--ghost);
+}
+.pw-dock-version {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.pw-dock-version:hover {
+  background: var(--hover);
+}
+.pw-dock-version.on {
+  background: var(--active);
+}
+.pw-dock-thumb {
+  display: block;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--hairline-strong);
+}
+.pw-dock-version.on .pw-dock-thumb {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.pw-dock-label {
+  padding: 0 1px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: left;
+}
+.pw-dock-version.on .pw-dock-label {
+  color: var(--text);
+  font-weight: 500;
+}
+.pw-dock-new {
+  align-self: stretch;
+  width: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 8px;
+  font-size: 11px;
+  color: var(--faint);
+}
+.pw-dock-new:hover {
+  color: var(--text);
+  background: var(--hover);
 }
 .pw-agent-chip {
   display: inline-flex;

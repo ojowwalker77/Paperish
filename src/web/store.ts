@@ -97,6 +97,8 @@ class Store {
   error: string | null = null
   settings: SettingsState | null = null
   settingsOpen = false
+  /** A view's version shown alone on the canvas, picked in the navigator. */
+  focus: string | null = null
   /** The navigator (⌘\\): project, files and pages over the canvas. */
   navOpen = loadFlag('paperish:navOpen', true)
   update: UpdateState | null = null
@@ -257,6 +259,7 @@ class Store {
           this.proposal = null
           this.activeThread = null
           this.commentDraft = null
+          this.focus = null
 
           if (!ENGINE_MODE && !VIEW_NODE) {
             history.replaceState(null, '', `?file=${msg.doc.id}`)
@@ -269,6 +272,8 @@ class Store {
           if (this.hover && !msg.doc.nodes[this.hover]) this.hover = null
 
           if (this.editingText && !msg.doc.nodes[this.editingText]) this.setEditingText(null)
+
+          if (this.focus && !msg.doc.nodes[this.focus]) this.focus = null
         }
 
         this.scheduleLint(0)
@@ -298,6 +303,8 @@ class Store {
         if (this.hover && !this.doc.nodes[this.hover]) this.hover = null
 
         if (this.editingText && !this.doc.nodes[this.editingText]) this.setEditingText(null)
+
+        if (this.focus && !this.doc.nodes[this.focus]) this.focus = null
         break
       }
 
@@ -366,6 +373,7 @@ class Store {
         this.proposal = null
         this.activeThread = null
         this.commentDraft = null
+        this.focus = null
         this.setEditingText(null)
 
         if (!ENGINE_MODE && !VIEW_NODE) history.replaceState(null, '', location.pathname)
@@ -376,6 +384,7 @@ class Store {
         if (this.pageId !== msg.pageId) {
           this.pageId = msg.pageId
           this.selection = []
+          this.focus = null
           this.scheduleLint(0)
         }
 
@@ -654,6 +663,19 @@ class Store {
     this.emit()
   }
 
+  setFocus(id: string | null) {
+    this.focus = id
+    this.selection = this.selection.filter((s) => !id || artboardOf(this.doc!.nodes, s)?.id === id)
+    this.emit()
+  }
+
+  /** The page's top-level nodes on the canvas: all of them, or the focused one alone. */
+  get boards(): string[] {
+    if (this.focus) return [this.focus]
+
+    return (this.page && this.doc?.nodes[this.page.rootId]?.children) || []
+  }
+
   setChangesOpen(open: boolean) {
     this.changesOpen = open
     this.emit()
@@ -683,6 +705,7 @@ class Store {
   setPage(pageId: string) {
     this.pageId = pageId
     this.selection = []
+    this.focus = null
     this.send({ t: 'page', pageId })
     this.scheduleLint(0)
     this.emit()

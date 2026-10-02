@@ -556,7 +556,8 @@ wss.on('connection', (socket) => {
                 send({ t: 'error', message: (e as Error).message })
               },
             )
-          else if (msg.t === 'duplicate') send({ t: 'created', ids: duplicate(f, msg.ids) })
+          else if (msg.t === 'duplicate')
+            send({ t: 'created', ids: duplicate(f, msg.ids, msg.name) })
           else if (msg.t === 'importUrl')
             runImport(f, { url: msg.url, width: msg.width }, 'user', msg.token).catch((e) =>
               // SAFETY: runImport rejects with Error for failed imports.

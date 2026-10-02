@@ -430,7 +430,8 @@ export type ClientMsg =
   | { t: 'createFile'; name?: string }
   | { t: 'deleteFile'; fileId: string }
   | { t: 'insertHtml'; parentId: string; index?: number; html: string; styles?: Styles }
-  | { t: 'duplicate'; ids: string[] }
+  /** A name for the copy, e.g. a view's next version. */
+  | { t: 'duplicate'; ids: string[]; name?: string }
   | { t: 'importUrl'; url: string; width?: number; token?: string }
   | { t: 'createPage'; name?: string }
   /** Set the OpenRouter key; empty removes it. */

@@ -1,12 +1,14 @@
 import { useRef, useState } from 'react'
 import type { FileSummary, Page } from '../../shared/types'
-import { store, useStore } from '../store'
+import { artboardOf } from '../../shared/ops'
+import { shallow, store, useStore } from '../store'
 import { Icon } from './icons'
 import { InlineInput } from './InlineInput'
 import { timeAgo, useOutside } from './Topbar'
+import { focusBoard, unfocus, viewsOf, type View } from './views'
 
 // Where you are, as one tree over the canvas (⌘\): the project and its branch
-// on top, then its files, the open one with its pages.
+// on top, then its files, the open one with its pages as folders of views.
 
 export function Navigator() {
   const open = useStore((s) => s.navOpen)
@@ -246,8 +248,11 @@ function OpenFile({ file: f }: { file: FileSummary }) {
 
 function PageRow({ page: p, last, readOnly }: { page: Page; last: boolean; readOnly: boolean }) {
   const active = useStore((s) => s.pageId === p.id)
+  const focused = useStore((s) => !!s.focus)
   const [renaming, setRenaming] = useState(false)
   const [confirming, setConfirming] = useState(false)
+  const [open, setOpen] = useState(active)
+  const views = useStore((s) => (s.doc ? viewsOf(s.doc, p) : []), sameViews)
 
   if (confirming)
     return (
@@ -279,35 +284,83 @@ function PageRow({ page: p, last, readOnly }: { page: Page; last: boolean; readO
     )
 
   return (
-    <div className={`pw-nav-row pw-nav-page pw-file-row ${active ? 'active' : ''}`}>
-      <button
-        className="pw-file-open"
-        onClick={() => !active && store.setPage(p.id)}
-        onDoubleClick={() => !readOnly && setRenaming(true)}
-      >
-        <span className="pw-menu-label">{p.name}</span>
-      </button>
-      {!readOnly && (
+    <>
+      <div className={`pw-nav-row pw-nav-page pw-file-row ${active && !focused ? 'active' : ''}`}>
         <button
-          className="pw-file-trash pw-file-rename"
-          title="Rename page"
-          aria-label={`Rename ${p.name}`}
-          onClick={() => setRenaming(true)}
+          className="pw-file-open"
+          onClick={() => {
+            setOpen(true)
+
+            if (active) unfocus()
+            else store.setPage(p.id)
+          }}
+          onDoubleClick={() => !readOnly && setRenaming(true)}
         >
-          <Icon.Edit size={13} />
+          <span
+            className={`pw-nav-twisty ${open ? 'down' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation()
+              setOpen(!open)
+            }}
+          >
+            <Icon.Chevron size={9} />
+          </span>
+          <span className="pw-menu-label">{p.name}</span>
         </button>
+        {!readOnly && (
+          <button
+            className="pw-file-trash pw-file-rename"
+            title="Rename page"
+            aria-label={`Rename ${p.name}`}
+            onClick={() => setRenaming(true)}
+          >
+            <Icon.Edit size={13} />
+          </button>
+        )}
+        {!readOnly && !last && (
+          <button
+            className="pw-file-trash"
+            title="Delete page"
+            aria-label={`Delete ${p.name}`}
+            onClick={() => setConfirming(true)}
+          >
+            <Icon.Trash />
+          </button>
+        )}
+      </div>
+      {open && views.length > 0 && (
+        <div className="pw-nav-views">
+          {views.map((v) => (
+            <ViewRow key={v.versions[0]} view={v} page={p} />
+          ))}
+        </div>
       )}
-      {!readOnly && !last && (
-        <button
-          className="pw-file-trash"
-          title="Delete page"
-          aria-label={`Delete ${p.name}`}
-          onClick={() => setConfirming(true)}
-        >
-          <Icon.Trash />
-        </button>
-      )}
-    </div>
+    </>
+  )
+}
+
+function ViewRow({ view, page }: { view: View; page: Page }) {
+  const focused = useStore((s) => !!s.focus && view.versions.includes(s.focus))
+
+  const agent = useStore((s) =>
+    s.working.some((id) => {
+      const board = s.doc && artboardOf(s.doc.nodes, id)
+
+      return !!board && view.versions.includes(board.id)
+    }),
+  )
+
+  const count = view.versions.length
+
+  return (
+    <button
+      className={`pw-nav-row pw-nav-view ${focused ? 'active' : ''}`}
+      onClick={() => focusBoard(view.versions[count - 1], page.id)}
+    >
+      <span className="pw-menu-label">{view.name}</span>
+      {agent && <span className="pw-nav-agent" />}
+      {count > 1 && <span className="pw-nav-version">v{count}</span>}
+    </button>
   )
 }
 
@@ -322,5 +375,12 @@ function Confirm(props: { label: string; onCancel: () => void; onDelete: () => v
         Delete
       </button>
     </div>
+  )
+}
+
+function sameViews(a: View[], b: View[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((v, i) => v.name === b[i].name && shallow(v.versions, b[i].versions))
   )
 }

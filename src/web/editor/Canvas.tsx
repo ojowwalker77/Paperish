@@ -291,9 +291,8 @@ export function Canvas() {
         }
 
         setMarquee(box)
-        const root = store.node(store.page?.rootId)
 
-        const hits = (root?.children ?? []).filter((id) => {
+        const hits = store.boards.filter((id) => {
           const r = worldRect(id)
 
           return (

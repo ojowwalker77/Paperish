@@ -15,7 +15,7 @@ type Size = { width: number; height: number }
  * size is known after.
  */
 export const Boards = memo(function Boards() {
-  const children = useStore((s) => (s.page ? s.doc?.nodes[s.page.rootId]?.children : undefined))
+  const children = useStore((s) => s.boards, shallow)
   const sizes = useStore((s) => s.boardSizes)
   const pinned = useStore(pinnedBoards, shallow)
   const view = useDeferredValue(useView())
