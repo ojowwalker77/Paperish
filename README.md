@@ -30,7 +30,7 @@ Then ask the agent to design something ("make a pricing page for a note-taking a
 
 ## Docs
 
-- [Agents](docs/agents.md): MCP tools, Tailwind, URL import, real React/Vue components, visual diff, picking between options
+- [MCP](docs/mcp.md): MCP tools, Tailwind, URL import, real React/Vue components, visual diff, picking between options
 - [Design checks](docs/design-checks.md): linting designs against the repo's DESIGN.md and Tailwind theme
 - [Designs in your repo](docs/git.md): `.paperish` files, branches and worktrees
 - [Editor](docs/editor.md): shortcuts, device previews, comments

@@ -1,4 +1,4 @@
-# Agents
+# MCP
 
 ## Tools
 
