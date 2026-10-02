@@ -56,6 +56,7 @@
   },
   "main": "src/app/dev.mjs",
   "productName": "Paperish",
+  "desktopName": "design.paperish.app.desktop",
   "description": "A design canvas where every design is real HTML/CSS, and agents design alongside you over MCP.",
   "author": "Jonatas Walker",
   "license": "Apache-2.0",
@@ -116,7 +117,8 @@
       ],
       "category": "Graphics",
       "executableName": "paperish",
-      "maintainer": "Jonatas Walker <125382352+ojowwalker77@users.noreply.github.com>"
+      "maintainer": "Jonatas Walker <125382352+ojowwalker77@users.noreply.github.com>",
+      "syncDesktopName": true
     },
     "publish": [
       {

@@ -1,36 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fdfdfc"/>
-      <stop offset="1" stop-color="#ecebe8"/>
-    </linearGradient>
-    <filter id="lift" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.13"/>
-    </filter>
-    <filter id="base" x="-10%" y="-10%" width="120%" height="125%">
-      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.22"/>
-    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2a2a"/><stop offset="1" stop-color="#141414"/></linearGradient>
+    <linearGradient id="sheet" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#ececea"/></linearGradient>
+    <filter id="base" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#000" flood-opacity="0.3"/></filter>
   </defs>
-  <!-- macOS icon body: 824px squircle-ish rounded square, centred -->
-  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)" filter="url(#base)"/>
-  <rect x="100.5" y="100.5" width="823" height="823" rx="185.5" fill="none" stroke="#000" stroke-opacity="0.06"/>
-  <!-- the sheet -->
-  <g transform="rotate(-6 512 512)" filter="url(#lift)">
-    <rect x="322" y="252" width="380" height="500" rx="18" fill="#fff"/>
-    <rect x="322.5" y="252.5" width="379" height="499" rx="17.5" fill="none" stroke="#000" stroke-opacity="0.07"/>
-    <rect x="368" y="310" width="170" height="22" rx="11" fill="#121212" opacity="0.85"/>
-    <rect x="368" y="352" width="250" height="14" rx="7" fill="#121212" opacity="0.18"/>
-    <rect x="368" y="380" width="210" height="14" rx="7" fill="#121212" opacity="0.18"/>
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#base)"/>
+  <rect x="101" y="101" width="822" height="822" rx="184" fill="none" stroke="#fff" stroke-opacity="0.08" stroke-width="2"/>
+  <path d="M340 290 H594 L684 380 V734 H340 Z" fill="url(#sheet)"/>
+  <path d="M594 290 V380 H684 Z" fill="#c9c9c6"/>
+  <rect x="292" y="242" width="440" height="540" rx="6" fill="none" stroke="#0a84ff" stroke-width="12"/>
+  <g fill="#1c1c1c" stroke="#0a84ff" stroke-width="12">
+    <rect x="266" y="216" width="52" height="52" rx="10"/><rect x="706" y="216" width="52" height="52" rx="10"/>
+    <rect x="266" y="756" width="52" height="52" rx="10"/><rect x="706" y="756" width="52" height="52" rx="10"/>
   </g>
-  <!-- a selection on the canvas, in the accent -->
-  <g transform="rotate(-6 512 512)">
-    <rect x="368" y="452" width="288" height="190" rx="10" fill="#0a84ff" fill-opacity="0.1"/>
-    <rect x="368" y="452" width="288" height="190" rx="10" fill="none" stroke="#0a84ff" stroke-width="7"/>
-    <g fill="#fff" stroke="#0a84ff" stroke-width="7">
-      <rect x="352" y="436" width="32" height="32" rx="6"/>
-      <rect x="640" y="436" width="32" height="32" rx="6"/>
-      <rect x="352" y="626" width="32" height="32" rx="6"/>
-      <rect x="640" y="626" width="32" height="32" rx="6"/>
-    </g>
-  </g>
+  <path d="M700 700 L700 880 L742 840 L772 904 L802 890 L772 826 L830 826 Z" fill="#ff7a1a" stroke="#141414" stroke-width="14" stroke-linejoin="round"/>
 </svg>
