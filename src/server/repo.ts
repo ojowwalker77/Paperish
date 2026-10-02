@@ -43,8 +43,6 @@ const NODE_KEYS = [
 
 type NodeFieldValue = PNode[(typeof NODE_KEYS)[number]]
 
-type SerializedNodes = Record<string, Record<string, NodeFieldValue>>
-
 type RepoDoc = Pick<
   Doc,
   'name' | 'pages' | 'nodes' | 'tokens' | 'comments' | 'fontFaces' | 'project' | 'seq'
@@ -62,12 +60,20 @@ interface RepoFileData {
   fontFaces?: unknown
 }
 
-function serializeDoc(doc: Doc, file: string): string {
-  const nodes: SerializedNodes = {}
+interface Serialized {
+  /** Everything before the node entries. */
+  head: string
+  nodes: NodeEntry[]
+}
 
-  for (const id of treeOrder(doc)) nodes[id] = nodeFields(doc.nodes[id])
+interface NodeEntry {
+  id: string
+  text: string
+  assets: string[]
+}
 
-  const body = {
+function serializeDoc(doc: Doc, file: string): Serialized {
+  const head = stringify({
     paperish: FORMAT,
     name: doc.name,
     codebase: doc.project
@@ -78,10 +84,62 @@ function serializeDoc(doc: Doc, file: string): string {
     tokens: doc.tokens,
     fontFaces: doc.fontFaces?.length ? doc.fontFaces : undefined,
     comments: doc.comments,
-    nodes,
+  })
+
+  return {
+    head: `${head.slice(0, -2)},\n  "nodes": `,
+    nodes: treeOrder(doc).map((id) => nodeEntry(id, doc.nodes[id])),
+  }
+}
+
+/** The file's text in pieces, so a big design is never built into one huge string. */
+function* fileChunks({ head, nodes }: Serialized): Generator<string> {
+  if (!nodes.length) {
+    yield `${head}{}\n}\n`
+
+    return
   }
 
-  return stringify(body) + '\n'
+  yield `${head}{\n`
+
+  for (let i = 0; i < nodes.length; i += 2000) {
+    const part = nodes
+      .slice(i, i + 2000)
+      .map((e) => e.text)
+      .join(',\n')
+
+    yield i + 2000 < nodes.length ? `${part},\n` : `${part}\n  }\n}\n`
+  }
+}
+
+/** Each node's serialized entry and the assets it uses, kept per node object: a save only re-serializes what changed. */
+const serialized = new WeakMap<PNode, NodeEntry>()
+
+function nodeEntry(id: string, n: PNode) {
+  let e = serialized.get(n)
+
+  if (e?.id !== id) {
+    const text = `    ${JSON.stringify(id)}: ${stringify(nodeFields(n), '    ')}`
+    serialized.set(n, (e = { id, text, assets: assetNames(text) }))
+  }
+
+  return e
+}
+
+function sameFile(a: Serialized, b: Serialized) {
+  return (
+    a.head === b.head &&
+    a.nodes.length === b.nodes.length &&
+    a.nodes.every((e, i) => e === b.nodes[i])
+  )
+}
+
+function assetsOf({ head, nodes }: Serialized) {
+  const names = new Set(assetNames(head))
+
+  for (const e of nodes) for (const a of e.assets) names.add(a)
+
+  return [...names]
 }
 
 export function parseRepoFile(text: string, file: string): RepoDoc {
@@ -188,7 +246,9 @@ function treeOrder(doc: Doc): string[] {
 
   for (const p of doc.pages) walk(p.rootId)
 
-  for (const id of Object.keys(doc.nodes).toSorted()) walk(id) // orphans are kept, not lost
+  const orphans = Object.keys(doc.nodes).filter((id) => !seen.has(id))
+
+  for (const id of orphans.toSorted()) walk(id) // orphans are kept, not lost
 
   return out
 }
@@ -289,9 +349,7 @@ function assetNames(text: string): string[] {
 }
 
 /** Copy the assets a file references from data/assets into <dir>/assets. */
-function exportAssets(text: string, dir: string) {
-  const names = assetNames(text)
-
+function exportAssets(names: string[], dir: string) {
   if (!names.length) return
   const out = path.join(dir, ASSET_DIR)
   fs.mkdirSync(out, { recursive: true })
@@ -408,8 +466,12 @@ interface SyncHooks {
 /** Keeps one document and its .paperish file in step, and tracks the file's git status. */
 export class RepoSync {
   state: RepoState
-  /** Text last written or read, so our own writes aren't mistaken for outside changes. */
+  /** Text last read from the file, so reading the same text again doesn't reload the document. */
   private last: string | null
+  /** What we last wrote, so a save that changes nothing is skipped. */
+  private wrote: Serialized | null = null
+  /** The file's mtime and size after our last write, so the watcher skips our own writes without reading them. */
+  written: { mtimeMs: number; size: number } | null = null
   /** Set while the file on disk can't be read (e.g. merge conflicts): saving would overwrite it. */
   private blocked: string | null = null
   private watchers: fs.FSWatcher[] = []
@@ -438,16 +500,25 @@ export class RepoSync {
   /** Write the document if its serialization changed. */
   write(doc: Doc) {
     if (this.closed || this.blocked) return
-    const text = serializeDoc(doc, this.file)
+    const out = serializeDoc(doc, this.file)
 
-    if (text === this.last) return
+    if (this.wrote && sameFile(out, this.wrote)) return
     const dir = path.dirname(this.file)
     fs.mkdirSync(dir, { recursive: true })
-    exportAssets(text, dir)
+    exportAssets(assetsOf(out), dir)
     const tmp = path.join(dir, `.${path.basename(this.file)}.tmp`)
-    fs.writeFileSync(tmp, text)
+    const fd = fs.openSync(tmp, 'w')
+
+    try {
+      for (const chunk of fileChunks(out)) fs.writeSync(fd, chunk)
+    } finally {
+      fs.closeSync(fd)
+    }
+
     fs.renameSync(tmp, this.file)
-    this.last = text
+    this.wrote = out
+    this.written = fs.statSync(this.file)
+    this.last = null
 
     if (!this.watchingFile) this.watch() // the folder may not have existed until now
     this.scheduleStatus()
@@ -532,6 +603,10 @@ export class RepoSync {
     let text: string
 
     try {
+      const st = fs.statSync(this.file)
+
+      if (st.mtimeMs === this.written?.mtimeMs && st.size === this.written.size && !this.blocked)
+        return this.scheduleStatus()
       text = fs.readFileSync(this.file, 'utf8')
     } catch {
       return this.scheduleStatus() // deleted or mid-rename; the next save recreates it

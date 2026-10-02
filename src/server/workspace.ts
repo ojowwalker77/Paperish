@@ -278,6 +278,9 @@ export class OpenFile {
     try {
       this.repo.write(this.doc)
       this.savedName = this.doc.name
+
+      if (this.repo.written)
+        this.ws.projects.saved(this.repo.file, this.repo.written.mtimeMs, this.doc)
     } catch (e) {
       // SAFETY: RepoSync.write throws Error instances for filesystem failures.
       this.broadcast({

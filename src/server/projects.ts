@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createHash, randomBytes } from 'node:crypto'
-import type { CheckoutInfo, FileSummary, JsonValue, ProjectInfo } from '../shared/types'
+import type { CheckoutInfo, Doc, FileSummary, JsonValue, ProjectInfo } from '../shared/types'
 import { ORIGIN, PROJECTS_FILE, SCRATCH_DIR } from './config'
 import { repoRoot, worktrees } from './git'
 import { EXT, findRepoFiles, parseRepoFile } from './repo'
@@ -213,6 +213,23 @@ export class Projects {
       updatedAt: [files[0]?.updatedAt, opened].filter(Boolean).toSorted().pop() ?? '',
       mcp: mcpUrl(p.id),
     }
+  }
+
+  /** A file Paperish just wrote: its summary comes from the document, not from reading it back. */
+  saved(file: string, mtime: number, doc: Pick<Doc, 'name' | 'pages' | 'nodes'>) {
+    const hit = this.summaries.get(file)
+
+    if (!hit) return
+    this.summaries.set(file, {
+      mtime,
+      summary: {
+        ...hit.summary,
+        name: doc.name,
+        updatedAt: new Date(mtime).toISOString(),
+        pageCount: doc.pages.length,
+        nodeCount: Object.keys(doc.nodes).length - doc.pages.length,
+      },
+    })
   }
 
   private summary(file: string, p: Project, checkout: string): FileSummary | null {
