@@ -1934,7 +1934,7 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
     },
     async ({ moves, fileId }) => {
       const f = resolve(fileId)
-      let doc: Doc = f.doc
+      let doc: Doc = { ...f.doc, nodes: { ...f.doc.nodes } }
       const ops: Op[] = []
       const results: { nodeId: string; parentId: string; index: number }[] = []
       const affected = new Set<string>()

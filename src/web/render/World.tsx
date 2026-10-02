@@ -1,8 +1,7 @@
-import { memo, useEffect, useMemo, type CSSProperties, type ReactNode } from 'react'
+import { memo, useMemo, type CSSProperties, type ReactNode } from 'react'
 import { fontFaceCss } from '../../shared/fontfaces'
 import { canvasResetCss } from '../../shared/reset'
-import { store, useStore } from '../store'
-import { ensureFonts, familiesIn } from './fonts'
+import { useStore } from '../store'
 import { NodeView } from './NodeView'
 
 const RESET = canvasResetCss('.pw-design')
@@ -18,7 +17,6 @@ export function DesignScope({
   children: ReactNode
 }) {
   const tokens = useStore((s) => s.doc?.tokens)
-  const nodes = useStore((s) => s.doc?.nodes)
   const faces = useStore((s) => s.doc?.fontFaces)
   const faceCss = useMemo(() => fontFaceCss(faces), [faces])
 
@@ -29,11 +27,6 @@ export function DesignScope({
 
     return v
   }, [tokens])
-
-  // Load fonts whenever the document changes (families are cached).
-  useEffect(() => {
-    if (store.doc) void ensureFonts(familiesIn(store.doc))
-  }, [nodes, tokens])
 
   return (
     <div className={`pw-design ${className ?? ''}`} style={{ ...vars, ...style }}>

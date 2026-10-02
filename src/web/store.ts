@@ -1,5 +1,6 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { applyOps, artboardOf } from '../shared/ops'
+import { ensureFonts, familiesIn } from './render/fonts'
 import type {
   CheckoutInfo,
   ClientMsg,
@@ -154,11 +155,9 @@ class Store {
     if (id) for (const l of this.nodeListeners.get(id) ?? []) l()
   }
 
-  /** Tell node views whose object changed (structural sharing makes this an identity check). */
+  /** Tell node views whose object changed. */
   private notifyNodes(prev: Record<string, PNode> | undefined) {
     const next = this.doc?.nodes
-
-    if (prev === next) return
 
     for (const [id, ls] of this.nodeListeners)
       if (prev?.[id] !== next?.[id]) for (const l of ls) l()
@@ -231,14 +230,15 @@ class Store {
   }
 
   private receive(msg: ServerMsg) {
-    const prevNodes = this.doc?.nodes
-
     switch (msg.t) {
       case 'doc': {
         const switched = this.doc?.id !== msg.doc.id
+        const prevNodes = this.doc?.nodes
         this.home = false
         this.boardSizes.clear()
         this.doc = msg.doc
+        this.notifyNodes(prevNodes)
+        void ensureFonts(familiesIn(msg.doc))
         this.version = msg.version
         this.pageId = msg.pageId
 
@@ -274,8 +274,12 @@ class Store {
       case 'ops': {
         if (!this.doc) return
         this.forgetBoardSizes(msg.ops)
-        this.doc = applyOps(this.doc, msg.ops).doc
+        const { doc, touched } = applyOps(this.doc, msg.ops)
+        this.doc = doc
         this.version = msg.version
+
+        for (const id of touched) this.notifyNode(id)
+        void ensureFonts(familiesIn(doc, touched))
 
         if (msg.origin === 'agent') this.lastAgentActivity = Date.now()
 
@@ -333,8 +337,10 @@ class Store {
       case 'projects':
         this.projects = msg.projects
         break
-      case 'closed':
+      case 'closed': {
+        const prevNodes = this.doc?.nodes
         this.doc = null
+        this.notifyNodes(prevNodes)
         this.home = true
         this.selection = []
         this.hover = null
@@ -357,6 +363,8 @@ class Store {
 
         if (!ENGINE_MODE && !VIEW_NODE) history.replaceState(null, '', location.pathname)
         break
+      }
+
       case 'page':
         if (this.pageId !== msg.pageId) {
           this.pageId = msg.pageId
@@ -405,7 +413,6 @@ class Store {
         break
     }
 
-    this.notifyNodes(prevNodes)
     this.flushWaiters()
     this.emit()
   }

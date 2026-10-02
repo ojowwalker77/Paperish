@@ -26,13 +26,13 @@ export async function loadIndex() {
 
 const parsed = new Map<string, string[]>()
 
-/** Runs on every document change, so each distinct font-family string is parsed once. */
-export function familiesIn(doc: Doc): Set<string> {
+/** Families used by the given nodes (all by default) and tokens; each distinct font-family string is parsed once. */
+export function familiesIn(doc: Doc, ids: Iterable<string> = Object.keys(doc.nodes)): Set<string> {
   const out = new Set<string>([DEFAULT_FONT])
   const seen = new Set<unknown>()
 
-  for (const id in doc.nodes) {
-    const v = doc.nodes[id].styles.fontFamily
+  for (const id of ids) {
+    const v = doc.nodes[id]?.styles.fontFamily
 
     if (v === undefined || seen.has(v)) continue
     seen.add(v)

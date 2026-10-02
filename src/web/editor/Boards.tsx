@@ -19,7 +19,7 @@ export const Boards = memo(function Boards() {
   const sizes = useStore((s) => s.boardSizes)
   const pinned = useStore(pinnedBoards, shallow)
   const view = useDeferredValue(useView())
-  useStore((s) => s.doc?.nodes)
+  useStore((s) => s.doc)
 
   const keep = new Set(pinned)
 

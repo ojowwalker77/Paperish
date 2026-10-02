@@ -85,11 +85,11 @@ function Problems() {
 /** Where the selection sits (click a crumb to select it) and its size (click to inspect). */
 function SelectionPath() {
   const ids = useStore((s) => s.selection, shallow)
-  const nodes = useStore((s) => s.doc?.nodes)
+  const doc = useStore((s) => s.doc)
   const inspecting = useStore((s) => s.inspectOpen)
   const rects = useWorldRects(ids.length === 1 ? ids : [])
 
-  if (!ids.length || !nodes) return null
+  if (!ids.length || !doc) return null
   const path = ids.length === 1 ? pathTo(ids[0]) : []
   const shown = path.length > 4 ? path.slice(-4) : path
   const r = ids.length === 1 ? rects[ids[0]] : undefined
@@ -108,7 +108,7 @@ function SelectionPath() {
                 reveal([id])
               }}
             >
-              {nodes[id]?.name || nodes[id]?.type}
+              {doc.nodes[id]?.name || doc.nodes[id]?.type}
             </button>
           ))}
         </span>
