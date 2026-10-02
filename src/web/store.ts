@@ -96,6 +96,8 @@ class Store {
   error: string | null = null
   settings: SettingsState | null = null
   settingsOpen = false
+  /** A downloaded update's version, installed by restarting. */
+  update: string | null = null
   /** Design checks of the current page. */
   lint: LintState | null = null
   lintOpen = false
@@ -303,6 +305,9 @@ class Store {
       case 'settings':
         this.settings = msg.settings
         this.scheduleLint(0)
+        break
+      case 'update':
+        this.update = msg.version
         break
       case 'lint':
         if (msg.fileId === this.doc?.id) this.lint = msg.lint

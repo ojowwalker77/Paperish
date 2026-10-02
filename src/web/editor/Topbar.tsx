@@ -36,6 +36,7 @@ export function Topbar() {
       </button>
 
       <div className="pw-topbar-right">
+        <UpdateButton />
         <div className="pw-tools" role="toolbar" aria-label="Tools">
           {TOOLS.map((t) => (
             <button
@@ -59,6 +60,23 @@ export function Topbar() {
         </button>
       </div>
     </header>
+  )
+}
+
+/** Shown once a new version has downloaded: restarting installs it. */
+export function UpdateButton() {
+  const version = useStore((s) => s.update)
+
+  if (!version) return null
+
+  return (
+    <button
+      className="pw-update-btn"
+      title={`Paperish ${version} is ready. Restart to install it.`}
+      onClick={() => store.send({ t: 'installUpdate' })}
+    >
+      Restart to update
+    </button>
   )
 }
 

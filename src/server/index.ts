@@ -11,7 +11,7 @@ import { engine } from './engine'
 import { googleFontIndex } from './fonts'
 import { toJSX } from './serialize'
 import { createMcpServer, mcpRequest } from './tools'
-import { call } from './host'
+import { call, onMain } from './host'
 import { duplicate, insertHtml } from './commands'
 import { compareCommit, fileHistory } from './history'
 import {
@@ -322,6 +322,18 @@ server.on('upgrade', (req, socket, head) => {
   wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req))
 })
 
+/** A downloaded update, offered to every editor until the app restarts into it. */
+let update: string | null = null
+
+onMain((msg) => {
+  if (msg.t !== 'update') return
+  update = msg.version
+  const data = JSON.stringify({ t: 'update', version: update } satisfies ServerMsg)
+
+  for (const c of workspace.clients)
+    if (c.role === 'editor' && c.ws.readyState === 1) c.ws.send(data)
+})
+
 wss.on('connection', (socket) => {
   const client: Client = { ws: socket, role: 'editor', fileId: null }
   workspace.clients.add(client)
@@ -383,6 +395,8 @@ wss.on('connection', (socket) => {
   client.home = home
 
   send({ t: 'settings', settings: settingsState() })
+
+  if (update) send({ t: 'update', version: update })
 
   /** A project opens on the checkout an agent worked in last (else the one with the newest design), at its last-used file. */
   const openProject = async (projectId: string) =>
@@ -470,6 +484,9 @@ wss.on('connection', (socket) => {
           break
         }
 
+        case 'installUpdate':
+          void call('installUpdate')
+          break
         case 'removeProject':
           workspace.projects.remove(msg.projectId)
           workspace.broadcastProjects()

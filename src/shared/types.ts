@@ -426,6 +426,8 @@ export type ClientMsg =
   | { t: 'createPage'; name?: string }
   /** Set the OpenRouter key; empty removes it. */
   | { t: 'settings'; openRouterKey?: string; theme?: ThemeSetting }
+  /** Restart into the downloaded update. */
+  | { t: 'installUpdate' }
   /** Check the open file's current page against its DESIGN.md. */
   | { t: 'lint' }
   /** Pick the project's DESIGN.md with the system dialog, then check again. */
@@ -473,6 +475,8 @@ export type ServerMsg =
   | { t: 'repo'; repo: RepoState | null }
   | { t: 'error'; message: string }
   | { t: 'settings'; settings: SettingsState }
+  /** A new version is downloaded; restarting installs it. */
+  | { t: 'update'; version: string }
   | { t: 'lint'; fileId: string; lint: LintState }
   | { t: 'proposal'; proposal: Proposal | null }
   /** The thread this connection just created, so its editor can open it. */

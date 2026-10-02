@@ -46,6 +46,8 @@ export interface HostApi {
   openDialog(opts: Electron.OpenDialogOptions): Promise<string | null>
   trash(file: string): Promise<void>
   setTheme(theme: ThemeSetting): Promise<void>
+  /** Quit and restart into the downloaded update. */
+  installUpdate(): Promise<void>
 }
 
 type Method = keyof HostApi
@@ -64,6 +66,8 @@ export type ServerMsg =
 export type MainMsg =
   | { t: 'reply'; id: number; value?: HostValue; error?: string }
   | { t: 'event'; page: number; event: string; params: JsonValue }
+  /** A new version downloaded and ready to install. */
+  | { t: 'update'; version: string }
   | { t: 'stop' }
 
 const pending = new Map<number, { resolve: (v: HostValue) => void; reject: (e: Error) => void }>()

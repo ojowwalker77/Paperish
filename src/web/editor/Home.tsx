@@ -4,7 +4,7 @@ import { store, useStore } from '../store'
 import { SettingsDialog } from './DesignChecks'
 import { Icon } from './icons'
 import { InlineInput } from './InlineInput'
-import { timeAgo } from './Topbar'
+import { timeAgo, UpdateButton } from './Topbar'
 
 // The home screen: every project the app knows (Scratch first), and adding a
 // repo. Adding one sets it up behind the scenes: design/ for its files and the
@@ -15,6 +15,7 @@ export function Home() {
     <div className="pw-app">
       <header className="pw-topbar pw-home-bar">
         <span className="pw-home-brand">Paperish</span>
+        <UpdateButton />
       </header>
       <div className="pw-stage">
         <div className="pw-home">

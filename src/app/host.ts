@@ -12,7 +12,8 @@ const ENTRY = fileURLToPath(
   new URL(import.meta.url.endsWith('.ts') ? 'dev.mjs' : 'server.js', import.meta.url),
 )
 
-export function startServer() {
+/** `installUpdate` restarts into a downloaded update, when the editor asks. */
+export function startServer(installUpdate: () => void) {
   const env: NodeJS.ProcessEnv = { ...process.env, PAPERISH_ROOT: app.getAppPath() }
 
   if (app.isPackaged) {
@@ -76,6 +77,9 @@ export function startServer() {
     async setTheme(theme) {
       nativeTheme.themeSource = theme
     },
+    async installUpdate() {
+      installUpdate()
+    },
   }
 
   const started = new Promise<string>((resolve, reject) => {
@@ -118,5 +122,8 @@ export function startServer() {
       else child.kill()
     })
 
-  return { ready: started, stop }
+  /** Tell the editors a new version is ready to install. */
+  const updateReady = (version: string) => post({ t: 'update', version })
+
+  return { ready: started, stop, updateReady }
 }

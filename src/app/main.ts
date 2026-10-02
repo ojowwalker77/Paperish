@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, nativeTheme, shell } from 'electron'
 import { startServer } from './host'
+import { watchUpdates } from './updater'
 
 // The desktop app: the Paperish server runs in a utility process (./host.ts),
 // the editor is a window onto it, and the layout engine uses hidden windows of
@@ -113,6 +114,15 @@ let quitting = false
 
 let server: ReturnType<typeof startServer> | null = null
 
+let install: (() => void) | null = null
+
+/** Save everything first: the updater quits on its own, past 'before-quit'. */
+function installUpdate() {
+  if (quitting || !install) return
+  quitting = true
+  void (server?.stop() ?? Promise.resolve()).finally(install)
+}
+
 app.on('before-quit', (e) => {
   if (quitting) return
   e.preventDefault()
@@ -123,7 +133,7 @@ app.on('before-quit', (e) => {
 // No top-level await: Electron holds 'ready' until the entry module finishes evaluating.
 void app.whenReady().then(async () => {
   if (!primary) return
-  server = startServer()
+  server = startServer(installUpdate)
 
   try {
     origin = await server.ready
@@ -137,12 +147,5 @@ void app.whenReady().then(async () => {
 
   openEditor()
 
-  if (app.isPackaged) {
-    // New releases download in the background and install on quit.
-    const { autoUpdater } = (await import('electron-updater')).default
-    autoUpdater.logger = null
-    autoUpdater
-      .checkForUpdatesAndNotify()
-      .catch((e: Error) => console.warn('[paperish] update check failed:', e.message))
-  }
+  if (app.isPackaged) install = await watchUpdates(server.updateReady)
 })

@@ -218,6 +218,24 @@ html.engine body {
   font-weight: 500;
   color: var(--muted);
 }
+.pw-home-bar .pw-update-btn {
+  margin-left: auto;
+}
+
+.pw-update-btn {
+  height: 24px;
+  margin-right: 6px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--accent);
+  background: var(--accent-soft);
+  flex-shrink: 0;
+}
+.pw-update-btn:hover {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+}
 
 .pw-icon-btn {
   width: 30px;
