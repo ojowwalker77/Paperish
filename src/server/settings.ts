@@ -1,8 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { nativeTheme } from 'electron'
 import type { SettingsState, ThemeSetting } from '../shared/types'
 import { DATA_DIR } from './config'
+import { call } from './host'
 
 // App-wide settings, kept in the data folder next to the project list. The
 // OpenRouter key never leaves this process: editors only learn whether one is set.
@@ -18,7 +18,7 @@ const THEMES = new Set<ThemeSetting>(['system', 'light', 'dark'])
 
 let current: Settings = read()
 
-nativeTheme.themeSource = theme()
+void call('setTheme', theme())
 
 function read(): Settings {
   try {
@@ -54,5 +54,5 @@ export function updateSettings(patch: { openRouterKey?: string; theme?: ThemeSet
   fs.mkdirSync(DATA_DIR, { recursive: true })
   fs.writeFileSync(FILE, JSON.stringify(next, null, 2) + '\n', { mode: 0o600 })
   current = next
-  nativeTheme.themeSource = theme()
+  void call('setTheme', theme())
 }

@@ -74,6 +74,13 @@ export default defineConfig({
   },
   overrides: [
     {
+      files: ['src/app/host.ts', 'src/server/host.ts'],
+      rules: {
+        // Electron's utility process ports, not window.postMessage: there's no target origin.
+        'unicorn/require-post-message-target-origin': 'allow',
+      },
+    },
+    {
       files: ['src/server/import/extract.js'],
       rules: {
         // Single self-contained page function: the importer extracts and evals

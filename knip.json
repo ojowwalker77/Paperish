@@ -1,6 +1,6 @@
 {
   "$schema": "https://unpkg.com/knip@6.38.0/schema.json",
-  "entry": ["src/app/main.ts", "scripts/*.ts"],
+  "entry": ["src/app/main.ts", "src/app/server.ts", "scripts/*.ts"],
   "project": ["src/**/*", "scripts/**/*"],
   "ignore": ["tools/**", "src/server/import/extract.js"],
   "rules": {

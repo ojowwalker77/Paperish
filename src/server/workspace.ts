@@ -1,10 +1,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { shell } from 'electron'
 import type { WebSocket } from 'ws'
 import { applyOps, artboardOf } from '../shared/ops'
 import type { Doc, FileSummary, Op, PNode, Page, ProjectInfo, ServerMsg } from '../shared/types'
 import { engine } from './engine'
+import { call } from './host'
 import { branches, commitDate, listTree, resolveRev, showFile } from './git'
 import { ensureProject, projectState } from './project'
 import { DESIGN_DIR, designDir, fileIdFor, Projects, type Project } from './projects'
@@ -699,7 +699,7 @@ export class Workspace {
 
     this.snapshots = this.snapshots.filter((k) => !k.startsWith(`${id}~`))
 
-    if (fs.existsSync(where.file)) await shell.trashItem(where.file)
+    if (fs.existsSync(where.file)) await call('trash', where.file)
     this.paths.delete(id)
 
     if (this.lastFile.get(where.checkout) === id) this.lastFile.delete(where.checkout)

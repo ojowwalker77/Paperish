@@ -6,12 +6,12 @@ import { hostHeaderValidation, originValidation, toNodeHandler } from '@modelcon
 import { createMcpHandler } from '@modelcontextprotocol/server'
 import type { ClientMsg, RepoCommit, RepoCompare, RepoState, ServerMsg } from '../shared/types'
 import { assetPath, EXT_MIME } from './assets'
-import { BrowserWindow, dialog } from 'electron'
 import { EXPORTS_DIR, HOST, IS_PROD, ORIGIN, PORT, ROOT_DIR } from './config'
 import { engine } from './engine'
 import { googleFontIndex } from './fonts'
 import { toJSX } from './serialize'
 import { createMcpServer, mcpRequest } from './tools'
+import { call } from './host'
 import { duplicate, insertHtml } from './commands'
 import { compareCommit, fileHistory } from './history'
 import {
@@ -441,19 +441,15 @@ wss.on('connection', (socket) => {
         }
 
         case 'addProject': {
-          const win = BrowserWindow.getFocusedWindow()
-
-          const opts = {
+          // SAFETY: workspace.projects.add rejects with Error for invalid folders.
+          void call('openDialog', {
             title: 'Add a project',
             buttonLabel: 'Add Project',
             properties: ['openDirectory', 'createDirectory'],
-          } satisfies Electron.OpenDialogOptions
-
-          // SAFETY: workspace.projects.add rejects with Error for invalid folders.
-          void (win ? dialog.showOpenDialog(win, opts) : dialog.showOpenDialog(opts))
-            .then(async (r) => {
-              if (r.canceled || !r.filePaths[0]) return
-              const p = await workspace.projects.add(r.filePaths[0])
+          })
+            .then(async (dir) => {
+              if (!dir) return
+              const p = await workspace.projects.add(dir)
               workspace.broadcastProjects()
               await openProject(p.id)
             })
@@ -545,21 +541,18 @@ wss.on('connection', (socket) => {
 
             if (!checkout)
               throw new Error('A branch viewed as committed can’t change its DESIGN.md.')
-            const win = BrowserWindow.getFocusedWindow()
 
-            const opts = {
+            // SAFETY: setDesignMdPath throws Error for files outside the checkout.
+            void call('openDialog', {
               title: 'Choose DESIGN.md',
               buttonLabel: 'Use This File',
               defaultPath: checkout,
               properties: ['openFile'],
               filters: [{ name: 'Markdown', extensions: ['md'] }],
-            } satisfies Electron.OpenDialogOptions
-
-            // SAFETY: setDesignMdPath throws Error for files outside the checkout.
-            void (win ? dialog.showOpenDialog(win, opts) : dialog.showOpenDialog(opts))
-              .then((r) => {
-                if (r.canceled || !r.filePaths[0]) return
-                setDesignMdPath(checkout, r.filePaths[0])
+            })
+              .then((file) => {
+                if (!file) return
+                setDesignMdPath(checkout, file)
                 sendLint(f)
               })
               .catch((e) => send({ t: 'error', message: (e as Error).message }))

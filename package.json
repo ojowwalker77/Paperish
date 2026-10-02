@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "electron .",
     "start": "vite build && NODE_ENV=production electron .",
-    "build": "vite build && bun build src/app/main.ts --target=node --format=esm --splitting --packages=external --outdir=out",
+    "build": "vite build && bun build src/app/main.ts src/app/server.ts --target=node --format=esm --splitting --packages=external --outdir=out",
     "dist": "npm run build && electron-builder",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint",

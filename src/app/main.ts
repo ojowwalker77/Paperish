@@ -1,8 +1,9 @@
 import { app, BrowserWindow, dialog, nativeTheme, shell } from 'electron'
+import { startServer } from './host'
 
-// The desktop app: the Paperish server runs in this (main) process, the editor
-// is a window onto it, and the layout engine uses hidden windows of the same
-// Chromium (src/server/browser.ts).
+// The desktop app: the Paperish server runs in a utility process (./host.ts),
+// the editor is a window onto it, and the layout engine uses hidden windows of
+// the same Chromium (./browser.ts).
 
 app.setName('Paperish')
 
@@ -110,34 +111,30 @@ nativeTheme.on('updated', () => {
 
 let quitting = false
 
+let server: ReturnType<typeof startServer> | null = null
+
 app.on('before-quit', (e) => {
   if (quitting) return
   e.preventDefault()
   quitting = true
-  void import('../server/index').then((s) => s.shutdown()).finally(() => app.exit(0))
+  void (server?.stop() ?? Promise.resolve()).finally(() => app.exit(0))
 })
 
 // No top-level await: Electron holds 'ready' until the entry module finishes evaluating.
 void app.whenReady().then(async () => {
   if (!primary) return
-  const { ORIGIN, PORT } = await import('../server/config')
+  server = startServer()
 
   try {
-    const server = await import('../server/index')
-    await server.listening
+    origin = await server.ready
   } catch (e) {
-    // SAFETY: caught from server listen; ErrnoException carries code when the port is busy.
-    const busy = (e as NodeJS.ErrnoException).code === 'EADDRINUSE'
-    // SAFETY: caught from server listen; Error carries the startup failure message.
-    dialog.showErrorBox(
-      'Paperish could not start',
-      busy ? `Port ${PORT} is already in use. Is another Paperish running?` : (e as Error).message,
-    )
+    if (quitting) return
+    // SAFETY: startServer rejects with Error carrying the startup failure message.
+    dialog.showErrorBox('Paperish could not start', (e as Error).message)
 
     return app.exit(1)
   }
 
-  origin = ORIGIN
   openEditor()
 
   if (app.isPackaged) {

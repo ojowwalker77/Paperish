@@ -1,8 +1,9 @@
 import path from 'node:path'
-import { app } from 'electron'
+
+// The main process passes the app's paths when it forks the server (src/app/host.ts).
 
 /** The app's own files: the repo in development, app.asar when packaged. */
-export const ROOT_DIR = app.getAppPath()
+export const ROOT_DIR = process.env.PAPERISH_ROOT ?? process.cwd()
 
 export const PORT = Number(process.env.PAPERISH_PORT ?? 29980)
 
@@ -11,10 +12,7 @@ export const HOST = '127.0.0.1'
 export const ORIGIN = `http://${HOST}:${PORT}`
 
 /** App state: the project list, Scratch, and caches. Designs themselves live in each project's repo. */
-export const DATA_DIR = path.resolve(
-  process.env.PAPERISH_DATA ??
-    (app.isPackaged ? app.getPath('userData') : path.join(ROOT_DIR, 'data')),
-)
+export const DATA_DIR = path.resolve(process.env.PAPERISH_DATA ?? path.join(ROOT_DIR, 'data'))
 
 export const PROJECTS_FILE = path.join(DATA_DIR, 'projects.json')
 
@@ -29,4 +27,4 @@ export const EXPORTS_DIR = path.join(DATA_DIR, 'exports')
 export const CACHE_DIR = path.join(DATA_DIR, 'cache')
 
 /** Serve the built editor (dist/) rather than Vite's dev server. */
-export const IS_PROD = app.isPackaged || process.env.NODE_ENV === 'production'
+export const IS_PROD = !!process.env.PAPERISH_PACKAGED || process.env.NODE_ENV === 'production'

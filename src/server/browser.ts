@@ -1,171 +1,74 @@
-import {
-  BrowserWindow,
-  session,
-  type Event as ElectronEvent,
-  type Session,
-  type WebContents,
-} from 'electron'
 import type { JsonValue } from '../shared/types'
+import { call, onMain, type FetchOptions, type PageOptions, type ScreenshotOptions } from './host'
 
-// Paperish runs inside Electron, so Chromium is already here: the layout
-// engine, URL import and PDF export use hidden windows, driven through the
-// DevTools protocol (webContents.debugger). This is the small slice of a
-// Playwright-style page API those callers need.
-
-export interface PageOptions {
-  width: number
-  height: number
-  /** A throwaway in-memory session (cookies, cache), for third-party pages and anything that waits for the network. */
-  isolated?: boolean
-  userAgent?: string
-}
+// The layout engine, URL import and PDF export use hidden windows of the
+// app's own Chromium. Windows live in the main process (src/app/browser.ts);
+// a Page drives one from here, with a small slice of a Playwright-style API.
 
 type Listener = (params: any) => void
 
-let partitions = 0
+const live = new Map<number, Page>()
 
-/** Isolated sessions are cleared and reused: Electron never frees a partition. */
-const spare: string[] = []
+onMain((msg) => {
+  if (msg.t === 'event') live.get(msg.page)?.emit(msg.event, msg.params)
+})
 
 export class Page {
-  readonly win: BrowserWindow
-  readonly wc: WebContents
-  readonly session: Session
-  private partition: string | null = null
   private listeners = new Map<string, Set<Listener>>()
-  private inflight = new Set<number>()
-  private lastActivity = Date.now()
   private closed = false
 
-  private constructor(opts: PageOptions) {
-    if (opts.isolated) this.partition = spare.pop() ?? `isolated-${++partitions}`
-    this.session = this.partition ? session.fromPartition(this.partition) : session.defaultSession
-
-    if (opts.userAgent || this.partition)
-      this.session.setUserAgent(opts.userAgent ?? session.defaultSession.getUserAgent())
-
-    if (opts.isolated) {
-      // Session-wide, so requests from iframes and workers count too (CDP only sees this frame's).
-      const { webRequest } = this.session
-      webRequest.onSendHeaders((d) => {
-        if (d.resourceType === 'webSocket') return
-        this.inflight.add(d.id)
-        this.lastActivity = Date.now()
-      })
-
-      const done = (d: { id: number }) => {
-        this.inflight.delete(d.id)
-        this.lastActivity = Date.now()
-      }
-
-      webRequest.onCompleted(done)
-      webRequest.onErrorOccurred(done)
-    }
-
-    this.win = new BrowserWindow({
-      show: false,
-      width: opts.width,
-      height: opts.height,
-      useContentSize: true,
-      webPreferences: {
-        session: this.session,
-        offscreen: true,
-        backgroundThrottling: false,
-        sandbox: true,
-        contextIsolation: true,
-      },
-    })
-    this.wc = this.win.webContents
-    this.wc.setFrameRate(30)
-    this.wc.on('console-message', (e) => {
-      if (e.level === 'error') this.emit('console-error', e.message)
-    })
-    this.wc.on('render-process-gone', (_e, d) => {
-      this.closed = true
-      this.emit('crash', d.reason)
-    })
-    this.win.on('closed', () => (this.closed = true))
-  }
+  private constructor(private readonly id: number) {}
 
   static async open(opts: PageOptions): Promise<Page> {
-    const p = new Page(opts)
-    // The debugger only answers once the window has a renderer.
-    await p.wc.loadURL('about:blank')
-    const dbg = p.wc.debugger
-    dbg.attach('1.3')
-    dbg.on('message', (_e, method, params) => p.emit(method, params))
-    await p.send('Emulation.setDeviceMetricsOverride', {
-      width: opts.width,
-      height: opts.height,
-      deviceScaleFactor: 1,
-      mobile: false,
-    })
+    const p = new Page(await call('openPage', opts))
+    live.set(p.id, p)
+    p.on('crash', () => (p.closed = true))
 
     return p
   }
 
   isClosed() {
-    return this.closed || this.win.isDestroyed()
+    return this.closed
   }
 
-  send<T = any>(method: string, params?: Record<string, JsonValue>): Promise<T> {
+  async send<T = any>(method: string, params?: Record<string, JsonValue>): Promise<T> {
     // SAFETY: CDP sendCommand resolves with the called method's documented payload, which each caller types as T.
-    return this.wc.debugger.sendCommand(method, params) as Promise<T>
+    return (await call('pageSend', this.id, method, params)) as T
   }
 
   on(event: string, fn: Listener) {
     let set = this.listeners.get(event)
 
-    if (!set) this.listeners.set(event, (set = new Set()))
+    if (!set) {
+      this.listeners.set(event, (set = new Set()))
+      void call('pageOn', this.id, event)
+    }
+
     set.add(fn)
   }
 
-  private emit(event: string, params: JsonValue) {
+  emit(event: string, params: JsonValue) {
     for (const fn of this.listeners.get(event) ?? []) fn(params)
   }
 
   /** Navigate and wait for the load event. Returns the main document's HTTP status. */
-  async goto(url: string, timeout = 45_000): Promise<number | null> {
-    let status: number | null = null
-    const onNav = (_e: ElectronEvent, _url: string, code: number) => (status = code)
-    this.wc.on('did-navigate', onNav)
-
-    try {
-      await withTimeout(
-        this.wc.loadURL(url).catch((e: Error & { code?: string }) => {
-          // Client-side redirects abort the first navigation; the page still loads.
-          if (e.code !== 'ERR_ABORTED') throw e
-        }),
-        timeout,
-        `Timed out loading ${url}`,
-      )
-    } finally {
-      this.wc.off('did-navigate', onNav)
-    }
-
-    return status
+  goto(url: string, timeout = 45_000): Promise<number | null> {
+    return call('pageGoto', this.id, url, timeout)
   }
 
   /** Resolve once no request has been in flight for 500ms (Playwright's "networkidle"). Isolated pages only. */
-  async networkIdle(timeout: number): Promise<void> {
-    const end = Date.now() + timeout
-
-    while (Date.now() < end) {
-      if (!this.inflight.size && Date.now() - this.lastActivity >= 500) return
-      await wait(100)
-    }
-
-    this.inflight.clear()
+  networkIdle(timeout: number): Promise<void> {
+    return call('pageNetworkIdle', this.id, timeout)
   }
 
   /** Evaluate a function (serialized with its argument) or an expression in the page. */
-  evaluate<T, A = undefined>(fn: string | ((arg: A) => T | Promise<T>), arg?: A): Promise<T> {
+  async evaluate<T, A = undefined>(fn: string | ((arg: A) => T | Promise<T>), arg?: A): Promise<T> {
     const src = isPageSource(fn)
       ? fn
       : `(${fn.toString()})(${arg === undefined ? '' : JSON.stringify(arg)})`
 
     // SAFETY: executeJavaScript resolves with the evaluated script's value, which each caller types as T.
-    return this.wc.executeJavaScript(src, true) as Promise<T>
+    return (await call('pageEvaluate', this.id, src)) as T
   }
 
   async waitFor(fn: () => boolean | Promise<boolean>, timeout: number): Promise<void> {
@@ -179,51 +82,28 @@ export class Page {
     throw new Error('Timed out waiting for the page')
   }
 
-  async screenshot(opts: {
-    format?: 'png' | 'jpeg' | 'webp'
-    quality?: number
-    clip: { x: number; y: number; width: number; height: number; scale: number }
-  }): Promise<string> {
-    const res = await this.send<{ data: string }>('Page.captureScreenshot', {
-      format: opts.format ?? 'png',
-      quality: opts.format === 'png' ? undefined : opts.quality,
-      captureBeyondViewport: true,
-      fromSurface: true,
-      clip: opts.clip,
-    })
-
-    return res.data
+  screenshot(opts: ScreenshotOptions): Promise<string> {
+    return call('pageScreenshot', this.id, opts)
   }
 
-  pdf(): Promise<Buffer> {
-    return this.wc.printToPDF({ printBackground: true, preferCSSPageSize: true })
+  async pdf(): Promise<Buffer> {
+    return Buffer.from(await call('pagePdf', this.id))
   }
 
   /** HTTP GET through this page's session (its cookies and user agent). */
-  async fetch(url: string, opts: { timeout: number; referrer?: string }): Promise<Response> {
-    // A hand-set Referer header gets the request blocked (ERR_BLOCKED_BY_CLIENT); `referrer` is the supported way.
-    return this.session.fetch(url, {
-      referrer: opts.referrer,
-      signal: AbortSignal.timeout(opts.timeout),
-      bypassCustomProtocolHandlers: true,
+  async fetch(url: string, opts: FetchOptions): Promise<Response> {
+    const res = await call('pageFetch', this.id, url, opts)
+
+    return new Response(res.body?.byteLength ? res.body : null, {
+      status: res.status,
+      headers: res.headers,
     })
   }
 
   async close() {
-    if (this.win.isDestroyed()) return
-
-    try {
-      this.wc.debugger.detach()
-    } catch {}
-
-    this.win.destroy()
-
-    if (this.partition) {
-      await this.session.clearStorageData().catch(() => {})
-      await this.session.clearCache().catch(() => {})
-      spare.push(this.partition)
-      this.partition = null
-    }
+    if (!live.delete(this.id)) return
+    this.closed = true
+    await call('pageClose', this.id)
   }
 }
 
@@ -231,13 +111,4 @@ export const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
 
 function isPageSource<T, A>(v: string | ((arg: A) => T | Promise<T>)): v is string {
   return Object.prototype.toString.call(v) === '[object String]'
-}
-
-function withTimeout<T>(p: Promise<T>, ms: number, message: string): Promise<T> {
-  let timer: NodeJS.Timeout
-
-  return Promise.race([
-    p,
-    new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new Error(message)), ms))),
-  ]).finally(() => clearTimeout(timer))
 }
