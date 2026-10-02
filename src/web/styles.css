@@ -2567,11 +2567,18 @@ a.pw-path:hover {
   font-weight: 500;
   color: var(--text);
 }
-button.pw-change-name:hover {
+button.pw-change-name:hover,
+.pw-change-zoom:hover {
   color: var(--accent);
 }
-.pw-change-score {
+.pw-change-tools {
   margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.pw-change-zoom,
+.pw-change-score {
   font-family: var(--mono);
   font-size: 11px;
   color: var(--muted);
@@ -2595,13 +2602,17 @@ button.pw-change-name:hover {
   font-size: 11px;
   color: var(--faint);
 }
+.pw-change-frame {
+  overflow: hidden;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--hairline);
+}
 .pw-change img {
   display: block;
   max-width: 100%;
   height: auto;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 0 0 1px var(--hairline);
+  transform-origin: 0 0;
 }
 .pw-change.removed img {
   opacity: 0.5;
@@ -2622,8 +2633,7 @@ button.pw-change-name:hover {
 }
 .pw-swipe-before {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
 }
 .pw-swipe-line {
   position: absolute;

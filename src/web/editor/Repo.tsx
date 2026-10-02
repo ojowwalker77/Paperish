@@ -363,6 +363,8 @@ function ChangeCard({
   live: boolean
 }) {
   const canJump = live && c.status !== 'removed' && !!store.node(c.id)
+  const ref = useRef<HTMLElement>(null)
+  const [view, fit] = useZoom(ref)
 
   const jump = () => {
     // Artboards sit directly under their page's root.
@@ -374,8 +376,18 @@ function ChangeCard({
     requestAnimationFrame(() => zoomToFit([c.id]))
   }
 
+  const style = {
+    transform: `translate(${view.x}px, ${view.y}px) scale(${view.zoom})`,
+  }
+
+  const img = (src: string | undefined, alt: string) => (
+    <div className="pw-change-frame" title={ZOOM_HINT}>
+      <img src={src} alt={alt} style={style} draggable={false} />
+    </div>
+  )
+
   return (
-    <article className={`pw-change ${c.status}`}>
+    <article className={`pw-change ${c.status}`} ref={ref}>
       <header className="pw-change-head">
         <span className={`pw-change-status ${c.status}`}>{c.status}</span>
         {canJump ? (
@@ -387,36 +399,44 @@ function ChangeCard({
         )}
         <span className="pw-muted">{c.pageName}</span>
         {c.moved && <span className="pw-muted">· moved</span>}
-        {c.contentScore !== undefined && (
-          <span className="pw-change-score" title="Share of non-background pixels that still match">
-            {Math.round(c.contentScore * 1000) / 10}% match
-          </span>
-        )}
+        <span className="pw-change-tools">
+          {view.zoom > 1 && (
+            <button className="pw-change-zoom" onClick={fit} title="Fit">
+              {Math.round(view.zoom * 100)}%
+            </button>
+          )}
+          {c.contentScore !== undefined && (
+            <span
+              className="pw-change-score"
+              title="Share of non-background pixels that still match"
+            >
+              {Math.round(c.contentScore * 1000) / 10}% match
+            </span>
+          )}
+        </span>
       </header>
       {c.status === 'changed' && c.before && c.after ? (
         mode === 'side' ? (
           <div className="pw-change-pair">
             <figure>
               <figcaption>Before</figcaption>
-              <img src={c.before} alt={`${c.name} before`} />
+              {img(c.before, `${c.name} before`)}
             </figure>
             <figure>
               <figcaption>After</figcaption>
-              <img src={c.after} alt={`${c.name} after`} />
+              {img(c.after, `${c.name} after`)}
             </figure>
           </div>
         ) : mode === 'swipe' ? (
-          <Swipe before={c.before} after={c.after} name={c.name} />
+          <Swipe before={c.before} after={c.after} name={c.name} style={style} />
         ) : (
           <figure className="pw-change-single">
             <figcaption>Differences in red</figcaption>
-            <img src={c.heat} alt={`${c.name} differences`} />
+            {img(c.heat, `${c.name} differences`)}
           </figure>
         )
       ) : c.after || c.before ? (
-        <figure className="pw-change-single">
-          <img src={c.after ?? c.before} alt={c.name} />
-        </figure>
+        <figure className="pw-change-single">{img(c.after ?? c.before, c.name)}</figure>
       ) : (
         <div className="pw-empty">No preview.</div>
       )}
@@ -424,8 +444,74 @@ function ChangeCard({
   )
 }
 
+type View = { zoom: number; x: number; y: number }
+
+const FIT: View = { zoom: 1, x: 0, y: 0 }
+
+const ZOOM_HINT = 'Pinch or ⌘ scroll to zoom'
+
+/** Pinch or ⌘/ctrl-scroll zooms around the cursor; scrolling pans once zoomed in. */
+function useZoom(ref: React.RefObject<HTMLElement | null>) {
+  const [view, setView] = useState<View>(FIT)
+  const cur = useRef(view)
+
+  const set = (v: View) => {
+    cur.current = v
+    setView(v)
+  }
+
+  useEffect(() => {
+    const el = ref.current!
+
+    const onWheel = (e: WheelEvent) => {
+      // SAFETY: wheel events only target elements.
+      const frame = (e.target as Element).closest('.pw-change-frame')
+      const v = cur.current
+
+      if (!frame || (v.zoom === 1 && !e.ctrlKey && !e.metaKey)) return
+      e.preventDefault()
+      const r = frame.getBoundingClientRect()
+      const k = e.deltaMode === 1 ? 16 : 1
+      let next: View
+
+      if (e.ctrlKey || e.metaKey) {
+        const sx = e.clientX - r.left
+        const sy = e.clientY - r.top
+        const zoom = Math.max(1, Math.min(8, v.zoom * Math.exp(-e.deltaY * k * 0.01)))
+        next = { zoom, x: sx - ((sx - v.x) / v.zoom) * zoom, y: sy - ((sy - v.y) / v.zoom) * zoom }
+      } else {
+        const dx = e.shiftKey && !e.deltaX ? e.deltaY : e.deltaX
+        const dy = e.shiftKey && !e.deltaX ? 0 : e.deltaY
+        next = { ...v, x: v.x - dx * k, y: v.y - dy * k }
+      }
+
+      set({
+        zoom: next.zoom,
+        x: Math.min(0, Math.max(r.width * (1 - next.zoom), next.x)),
+        y: Math.min(0, Math.max(r.height * (1 - next.zoom), next.y)),
+      })
+    }
+
+    el.addEventListener('wheel', onWheel, { passive: false })
+
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [ref])
+
+  return [view, () => set(FIT)] as const
+}
+
 /** Before under after; the divider follows the pointer. */
-function Swipe({ before, after, name }: { before: string; after: string; name: string }) {
+function Swipe({
+  before,
+  after,
+  name,
+  style,
+}: {
+  before: string
+  after: string
+  name: string
+  style: React.CSSProperties
+}) {
   const [pos, setPos] = useState(50)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -440,14 +526,17 @@ function Swipe({ before, after, name }: { before: string; after: string; name: s
         <span>Before</span>
         <span>After</span>
       </figcaption>
-      <div className="pw-swipe" ref={ref} onPointerMove={move} onPointerDown={move}>
-        <img src={after} alt={`${name} after`} />
-        <img
-          className="pw-swipe-before"
-          src={before}
-          alt={`${name} before`}
-          style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
-        />
+      <div
+        className="pw-swipe pw-change-frame"
+        title={ZOOM_HINT}
+        ref={ref}
+        onPointerMove={move}
+        onPointerDown={move}
+      >
+        <img src={after} alt={`${name} after`} style={style} draggable={false} />
+        <div className="pw-swipe-before" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
+          <img src={before} alt={`${name} before`} style={style} draggable={false} />
+        </div>
         <span className="pw-swipe-line" style={{ left: `${pos}%` }} />
       </div>
     </figure>
