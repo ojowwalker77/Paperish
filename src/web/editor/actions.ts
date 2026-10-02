@@ -54,11 +54,53 @@ export function worldRectOf(el: Element): Box | null {
   }
 }
 
+/** Artboards come from the document (they may not be rendered); other nodes from the DOM, else their artboard's. */
 export function worldRect(id: string): Box | null {
+  const board = store.doc && artboardOf(store.doc.nodes, id)
+  const known = board?.id === id ? boardRect(id) : null
+
+  if (known) return known
   const el = nodeEl(id)
 
-  return el ? worldRectOf(el) : null
+  if (el) return worldRectOf(el)
+
+  return board ? boardRect(board.id) : null
 }
+
+/** Where an artboard sits without rendering it: its left/top, and its size when last rendered or its own px size. */
+export function boardRect(id: string): Box | null {
+  const n = store.node(id)
+  const size = store.boardSizes.get(id) ?? fixedSize(n)
+
+  return n && size ? { x: px(n.styles.left), y: px(n.styles.top), ...size } : null
+}
+
+/** Where an artboard could be: its rect, or for one not measured yet whose size isn't fixed, all right of and below its corner. */
+export function boardReach(id: string): Box | null {
+  const n = store.node(id)
+
+  if (!n) return null
+  const w = String(n.styles.width)
+  const h = String(n.styles.height)
+
+  return (
+    boardRect(id) ?? {
+      x: px(n.styles.left),
+      y: px(n.styles.top),
+      width: PX.test(w) ? px(w) : Infinity,
+      height: PX.test(h) ? px(h) : Infinity,
+    }
+  )
+}
+
+function fixedSize(n: PNode | undefined) {
+  const w = String(n?.styles.width)
+  const h = String(n?.styles.height)
+
+  return PX.test(w) && PX.test(h) ? { width: px(w), height: px(h) } : undefined
+}
+
+const PX = /^\d+(\.\d+)?(px)?$/
 
 export function toWorld(clientX: number, clientY: number) {
   const vp = viewport!.getBoundingClientRect()

@@ -1,8 +1,8 @@
 import { memo, useMemo, type CSSProperties, type Ref } from 'react'
-import { shallow, store, useCamera, useStore } from '../store'
-import { viewportSize, type Box } from './actions'
+import { shallow, useStore } from '../store'
+import { boardReach, boardRect, type Box } from './actions'
 import { CommentPins } from './Comments'
-import { useWorldRects } from './measure'
+import { intersects, useView, useWorldRects, type View } from './measure'
 
 // Screen-space chrome drawn above the canvas: artboard labels, agent working
 // indicators, hover and selection outlines. Items carry world rects
@@ -83,17 +83,24 @@ const Labels = memo(function Labels() {
   const labels = useStore((s) => rootChildren.map((id) => s.doc?.nodes[id]), shallow)
   const agentRecent = useStore((s) => s.lastAgentActivity)
   const proposal = useStore((s) => s.proposal)
-  const rects = useWorldRects(rootChildren)
   const view = useView()
+  const sizes = useStore((s) => s.boardSizes)
+
+  const shown = useMemo(
+    () => rootChildren.filter((id) => working.includes(id) || labelled(id, view)),
+    [rootChildren, working, view, sizes],
+  )
+
+  const rects = useWorldRects(shown)
+  const isShown = new Set(shown)
   const recentlyActive = Date.now() - agentRecent < 2500
 
   return labels.map((n, i) => {
     const id = rootChildren[i]
-    const r = rects[id]
-
+    const r = isShown.has(id) ? (rects[id] ?? boardRect(id)) : null
     const isWorking = working.includes(id)
 
-    if (!r || !n || n.hidden || (!isWorking && !inView(r, view))) return null
+    if (!r || !n || n.hidden) return null
     const option = proposal?.options.find((o) => o.nodeId === id)
 
     return (
@@ -140,39 +147,11 @@ const Label = memo(function Label({
   )
 })
 
-/**
- * The world area on screen plus a 512px margin, recomputed only when the
- * camera crosses a 256px step or zooms past a quarter octave.
- */
-function useView() {
-  const step = useCamera(
-    (c) => `${Math.round(Math.log2(c.zoom) * 4)} ${Math.round(c.x / 256)} ${Math.round(c.y / 256)}`,
-  )
-
-  return useMemo(() => {
-    const { x, y, zoom } = store.camera
-    const vp = viewportSize()
-    const m = 512 / zoom
-
-    return {
-      x: -x / zoom - m,
-      y: -y / zoom - m,
-      width: vp.width / zoom + 2 * m,
-      height: vp.height / zoom + 2 * m,
-      zoom,
-    }
-  }, [step])
-}
-
 /** Labels fade out under 28px wide; within a quarter octave of zoom, under 20px never reaches that. */
-function inView(r: Box, view: Box & { zoom: number }) {
-  return (
-    r.width * view.zoom >= 20 &&
-    r.x < view.x + view.width &&
-    r.x + r.width > view.x &&
-    r.y < view.y + view.height &&
-    r.y + r.height > view.y
-  )
+function labelled(id: string, view: View) {
+  const r = boardReach(id)
+
+  return !!r && r.width * view.zoom >= 20 && intersects(r, view)
 }
 
 function Hover() {

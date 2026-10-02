@@ -1,7 +1,7 @@
-import { useLayoutEffect, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { useStore } from '../store'
-import { nodeEl, worldRectOf, type Box } from './actions'
+import { store, useCamera, useStore } from '../store'
+import { nodeEl, viewportSize, worldRectOf, type Box } from './actions'
 
 export type Rects = Record<string, Box>
 
@@ -85,4 +85,34 @@ export function useWorldRects(ids: readonly string[]): Rects {
   }, [key, pageId])
 
   return rects
+}
+
+export type View = Box & { zoom: number }
+
+/**
+ * The world area on screen plus a 512px margin, recomputed only when the
+ * camera crosses a 256px step or zooms past a quarter octave.
+ */
+export function useView(): View {
+  const step = useCamera(
+    (c) => `${Math.round(Math.log2(c.zoom) * 4)} ${Math.round(c.x / 256)} ${Math.round(c.y / 256)}`,
+  )
+
+  return useMemo(() => {
+    const { x, y, zoom } = store.camera
+    const vp = viewportSize()
+    const m = 512 / zoom
+
+    return {
+      x: -x / zoom - m,
+      y: -y / zoom - m,
+      width: vp.width / zoom + 2 * m,
+      height: vp.height / zoom + 2 * m,
+      zoom,
+    }
+  }, [step])
+}
+
+export function intersects(a: Box, b: Box) {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
 }

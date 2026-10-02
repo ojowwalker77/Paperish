@@ -1,5 +1,5 @@
 import { useCallback, useRef, useSyncExternalStore } from 'react'
-import { applyOps } from '../shared/ops'
+import { applyOps, artboardOf } from '../shared/ops'
 import type {
   CheckoutInfo,
   ClientMsg,
@@ -89,6 +89,8 @@ class Store {
   previewMode: PreviewMode = loadPreviewMode()
   previewDevice: DevicePrefs = loadDevicePrefs()
   camera: Camera = { x: 80, y: 80, zoom: 0.5 }
+  /** Each artboard's size when last rendered, so the canvas can place the ones it doesn't render. */
+  boardSizes = new Map<string, { width: number; height: number }>()
   expanded = new Set<string>()
   error: string | null = null
   settings: SettingsState | null = null
@@ -235,6 +237,7 @@ class Store {
       case 'doc': {
         const switched = this.doc?.id !== msg.doc.id
         this.home = false
+        this.boardSizes.clear()
         this.doc = msg.doc
         this.version = msg.version
         this.pageId = msg.pageId
@@ -270,6 +273,7 @@ class Store {
 
       case 'ops': {
         if (!this.doc) return
+        this.forgetBoardSizes(msg.ops)
         this.doc = applyOps(this.doc, msg.ops).doc
         this.version = msg.version
 
@@ -403,6 +407,49 @@ class Store {
 
     this.notifyNodes(prevNodes)
     this.flushWaiters()
+    this.emit()
+  }
+
+  /** An edit can resize its artboard; forgetting the size makes the canvas render and measure it again. */
+  private forgetBoardSizes(ops: Op[]) {
+    for (const op of ops) {
+      switch (op.t) {
+        case 'tokens':
+        case 'fontFaces':
+          return this.boardSizes.clear()
+        case 'styles':
+        case 'patch':
+          this.forgetBoardOf(op.id)
+          break
+        case 'insert':
+          this.forgetBoardOf(op.parentId)
+          break
+        case 'move':
+          this.forgetBoardOf(op.id)
+          this.forgetBoardOf(op.parentId)
+          break
+        case 'delete':
+          for (const id of op.ids) this.forgetBoardOf(id)
+          break
+      }
+    }
+  }
+
+  private forgetBoardOf(id: string) {
+    const board = this.doc && artboardOf(this.doc.nodes, id)
+
+    if (board) this.boardSizes.delete(board.id)
+  }
+
+  setBoardSizes(sizes: Map<string, { width: number; height: number }>) {
+    const changed = [...sizes].filter(([id, s]) => {
+      const was = this.boardSizes.get(id)
+
+      return !was || Math.abs(was.width - s.width) > 0.5 || Math.abs(was.height - s.height) > 0.5
+    })
+
+    if (!changed.length) return
+    this.boardSizes = new Map([...this.boardSizes, ...changed])
     this.emit()
   }
 

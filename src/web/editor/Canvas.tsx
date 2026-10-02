@@ -5,7 +5,6 @@ import {
   useState,
   type PointerEvent as RPointerEvent,
 } from 'react'
-import { World } from '../render/World'
 import { store, useStore, type Camera } from '../store'
 import {
   commitText,
@@ -23,6 +22,7 @@ import {
   zoomToFit,
   type Box,
 } from './actions'
+import { Boards } from './Boards'
 import { Overlay } from './Overlay'
 
 const DRAG_THRESHOLD = 3
@@ -478,7 +478,7 @@ export function Canvas() {
     >
       <div className="pw-grid" ref={gridRef} />
       <div className="pw-camera" ref={cameraRef}>
-        <World />
+        <Boards />
       </div>
       <Overlay marquee={marquee} draft={draft} panRef={overlayRef} />
     </div>
