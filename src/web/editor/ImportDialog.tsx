@@ -32,6 +32,13 @@ const SOURCES: SourceDef[] = [
     icon: <Icon.Frame size={16} />,
     panel: <FigmaPanel />,
   },
+  {
+    id: 'paper',
+    label: 'Paper',
+    title: 'Import from Paper',
+    icon: <Icon.Artboard size={16} />,
+    panel: <PaperPanel />,
+  },
 ]
 
 export function ImportDialog() {
@@ -171,6 +178,18 @@ function FigmaPanel() {
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
       <ImportFooter disabled={!ready} onSubmit={submit} />
+    </>
+  )
+}
+
+function PaperPanel() {
+  return (
+    <>
+      <p className="pw-modal-text">
+        Reads the artboards selected in Paper Desktop, or every artboard on its current page, and
+        rebuilds them as editable layers with their images and tokens. Keep the file open in Paper.
+      </p>
+      <ImportFooter disabled={false} onSubmit={() => store.startImport({ t: 'importPaper' })} />
     </>
   )
 }

@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { mergeFontFaces } from '../shared/fontfaces'
-import type { Op, TaskState, Token } from '../shared/types'
+import { subtreeIds } from '../shared/ops'
+import type { Op, PNode, TaskState, Token } from '../shared/types'
 import type { ImportResult, Progress } from './importer'
 import { findPlacement } from './placement'
 import type { OpenFile, Origin } from './workspace'
@@ -17,7 +18,7 @@ export async function runImport(
   job: ImportJob,
   origin: Origin,
   token?: string,
-): Promise<{ rootId: string; result: ImportResult }> {
+): Promise<{ rootId: string; rootIds: string[]; result: ImportResult }> {
   const task: TaskState = {
     id: randomBytes(4).toString('hex'),
     label: `Importing ${job.label}`,
@@ -38,13 +39,22 @@ export async function runImport(
 
     const place = await findPlacement(f)
     const root = f.doc.nodes[f.page.rootId]
-    const top = result.nodes[0]
-    top.parent = root.id
-    top.styles = { ...top.styles, left: `${place.left}px`, top: `${place.top}px` }
+    const byId = Object.fromEntries(result.nodes.map((n) => [n.id, n]))
+    const tops = result.nodes.filter((n) => !n.parent || !byId[n.parent])
+    const dx = place.left - Math.min(...tops.map((n) => at(n, 'left')))
+    const dy = place.top - Math.min(...tops.map((n) => at(n, 'top')))
 
-    const ops: Op[] = [
-      { t: 'insert', parentId: root.id, index: root.children.length, nodes: result.nodes },
-    ]
+    const ops: Op[] = tops.map((top, i) => {
+      const nodes = subtreeIds(byId, top.id).map((id) => byId[id])
+      top.parent = root.id
+      top.styles = {
+        ...top.styles,
+        left: `${at(top, 'left') + dx}px`,
+        top: `${at(top, 'top') + dy}px`,
+      }
+
+      return { t: 'insert', parentId: root.id, index: root.children.length + i, nodes }
+    })
 
     if (result.fontFaces.length)
       ops.push({ t: 'fontFaces', fontFaces: mergeFontFaces(f.doc.fontFaces, result.fontFaces) })
@@ -53,12 +63,13 @@ export async function runImport(
 
     if (tokens.length) ops.push({ t: 'tokens', tokens: [...f.doc.tokens, ...tokens] })
     f.transact(ops, origin, 'import')
-    f.broadcast({ t: 'reveal', ids: [top.id] })
+    const rootIds = tops.map((n) => n.id)
+    f.broadcast({ t: 'reveal', ids: rootIds })
     Object.assign(task, {
       status: 'done',
       pct: 100,
       label: `Imported ${job.label}`,
-      ids: [top.id],
+      ids: rootIds,
       message: [
         `${result.stats.layers} layers`,
         `${result.stats.images} images`,
@@ -68,7 +79,7 @@ export async function runImport(
     })
     push()
 
-    return { rootId: top.id, result }
+    return { rootId: rootIds[0], rootIds, result }
   } catch (e) {
     // SAFETY: import producers, findPlacement and transact reject with Error instances.
     Object.assign(task, { status: 'error', message: (e as Error).message.split('\n')[0] })
@@ -81,6 +92,10 @@ export function newTokens(f: OpenFile, tokens: Token[]): Token[] {
   const names = new Set(f.doc.tokens.map((t) => t.name))
 
   return tokens.filter((t) => !names.has(t.name))
+}
+
+function at(n: PNode, k: 'left' | 'top'): number {
+  return parseFloat(String(n.styles[k])) || 0
 }
 
 export function hostOf(url: string): string {

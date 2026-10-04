@@ -49,6 +49,7 @@ import {
 } from './knobs'
 import { urlJob, type ImportResult } from './importer'
 import { figmaJob } from './import/figma'
+import { paperJob } from './import/paper'
 import { dtcgDocument, tokensFromDtcg, type DtcgEntry } from './import/dtcg'
 import { newTokens, runImport } from './tasks'
 import { findSampleData } from './samples'
@@ -1348,6 +1349,29 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
 
       return text(
         `Added ${added.length} tokens${tokens.length > added.length ? `; ${tokens.length - added.length} already existed and were left unchanged (use set_tokens to change them)` : ''}.${added.length ? `\n\n${added.map((t) => `${t.name}: ${t.value} (${t.type})`).join('\n')}` : ''}`,
+      )
+    },
+  )
+
+  tool(
+    'import_paper',
+    `Import artboards from Paper (paper.design) as editable design layers. Paperish connects to Paper Desktop's MCP server (127.0.0.1:29979, served while a file is open), reads each artboard with get_jsx and rebuilds it as Frame/Text/Image/SVG nodes with real CSS. Images are downloaded locally and Paper's design tokens are added where the names are free. Without nodeIds it imports the nodes selected in Paper, or every artboard on Paper's current page.`,
+    {
+      nodeIds: z
+        .array(z.string())
+        .optional()
+        .describe('Paper node ids to import (default: the Paper selection, else all artboards).'),
+      fileId: fileIdArg,
+    },
+    async ({ nodeIds, fileId }) => {
+      const f = resolve(fileId)
+      const { rootIds, result } = await runImport(f, paperJob(f, nodeIds), 'agent')
+      const ids = rootIds.flatMap((id) => subtreeIds(f.doc.nodes, id))
+      const rects = await layout(f, ids.slice(0, 400))
+      const s = result.stats
+
+      return text(
+        `Imported ${rootIds.length} artboard${rootIds.length === 1 ? '' : 's'} from Paper: ${s.layers} layers, ${s.images} images${s.imagesFailed ? ` (${s.imagesFailed} left remote)` : ''}, ${result.tokens?.length ?? 0} tokens read.\n\n${rootIds.flatMap((id) => treeLines(f, id, rects, 2, 80)).join('\n')}${result.warnings.length ? `\n\nNotes:\n- ${result.warnings.join('\n- ')}` : ''}`,
       )
     },
   )

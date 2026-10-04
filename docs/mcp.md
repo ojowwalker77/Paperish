@@ -9,7 +9,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Files | `list_files` `open_file` `create_file` `create_page` |
 | Repo | `compare_revision` |
 | Codebase | `link_project` `list_components` `set_component_props` `find_sample_data` `search_icons` |
-| Import | `import_url` `import_figma` |
+| Import | `import_url` `import_figma` `import_paper` |
 | Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
 | Write | `create_artboard` `write_html` `set_text_content` `update_styles` `rename_nodes` `duplicate_nodes` `move_nodes` `delete_nodes` `finish_working_on_nodes` |
@@ -75,6 +75,16 @@ claude mcp add paperish -- /path/to/paperish/node_modules/.bin/electron /path/to
 - Aliases (`{color.brand.500}`) become `var(--color-brand-500)`.
 - Figma scopes (`com.figma.scopes`) pick the token type: corner radius, gap, font size and so on. Otherwise the type comes from the name, and plain numbers default to spacing.
 - Only a collection's default mode is imported. Tokens whose name already exists are left alone.
+
+## Import from Paper
+
+`import_paper` (or "Import from Paper…" in ⌘K) brings artboards over from [Paper](https://paper.design) as editable layers. It reads them through Paper's own MCP, which Paper Desktop serves on `127.0.0.1:29979` while a file is open:
+1. Without `nodeIds` it takes the nodes selected in Paper (`get_selection`), or every artboard on Paper's current page (`get_basic_info`).
+2. Each artboard comes in through `get_jsx` with inline styles. The JSX is turned into HTML and goes through the same parser as `write_html`, so text, frames, images and SVG become regular layers. Artboards keep their names and their positions relative to each other.
+3. Images are downloaded into `data/assets`.
+4. Paper's tokens (`get_tokens`) are added unless a token with the same name already exists.
+
+Layer names inside an artboard aren't in Paper's JSX, so they're named the way `write_html` names them.
 
 ## Real components (React, Vue)
 
