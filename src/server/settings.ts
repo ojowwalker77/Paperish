@@ -5,12 +5,13 @@ import { DATA_DIR } from './config'
 import { call } from './host'
 
 // App-wide settings, kept in the data folder next to the project list. The
-// OpenRouter key never leaves this process: editors only learn whether one is set.
+// OpenRouter key and Figma token never leave this process: editors only learn whether one is set.
 
 const FILE = path.join(DATA_DIR, 'settings.json')
 
 interface Settings {
   openRouterKey?: string
+  figmaToken?: string
   theme?: ThemeSetting
 }
 
@@ -32,22 +33,31 @@ export function openRouterKey(): string | undefined {
   return current.openRouterKey || process.env.OPENROUTER_API_KEY || undefined
 }
 
+export function figmaToken(): string | undefined {
+  return current.figmaToken || process.env.FIGMA_TOKEN || undefined
+}
+
 function theme(): ThemeSetting {
   return current.theme && THEMES.has(current.theme) ? current.theme : 'system'
 }
 
 export function settingsState(): SettingsState {
-  return { openRouter: !!openRouterKey(), theme: theme() }
+  return { openRouter: !!openRouterKey(), figma: !!figmaToken(), theme: theme() }
 }
 
-export function updateSettings(patch: { openRouterKey?: string; theme?: ThemeSetting }) {
+export function updateSettings(patch: {
+  openRouterKey?: string
+  figmaToken?: string
+  theme?: ThemeSetting
+}) {
   const next = { ...current }
 
-  if (patch.openRouterKey !== undefined) {
-    const key = String(patch.openRouterKey).trim()
+  for (const k of ['openRouterKey', 'figmaToken'] as const) {
+    if (patch[k] === undefined) continue
+    const key = String(patch[k]).trim()
 
-    if (key) next.openRouterKey = key
-    else delete next.openRouterKey
+    if (key) next[k] = key
+    else delete next[k]
   }
 
   if (patch.theme && THEMES.has(patch.theme)) next.theme = patch.theme

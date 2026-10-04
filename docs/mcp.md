@@ -9,7 +9,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Files | `list_files` `open_file` `create_file` `create_page` |
 | Repo | `compare_revision` |
 | Codebase | `link_project` `list_components` `set_component_props` `find_sample_data` `search_icons` |
-| Import | `import_url` |
+| Import | `import_url` `import_figma` |
 | Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
 | Write | `create_artboard` `write_html` `set_text_content` `update_styles` `rename_nodes` `duplicate_nodes` `move_nodes` `delete_nodes` `finish_working_on_nodes` |
@@ -59,6 +59,15 @@ claude mcp add paperish -- /path/to/paperish/node_modules/.bin/electron /path/to
 3. Authored sizing comes from the site's stylesheets through the DevTools protocol (`CSS.getMatchedStylesForNode`): `%`, `max-width`, `auto` margins and `fr` tracks. This keeps imported layouts fluid rather than frozen at pixel sizes.
 4. Images and web fonts (`@font-face` files) are downloaded into `data/assets`.
 5. Pseudo-elements, inline SVG (with computed paints and `<use>` sprites resolved), tables and fixed headers are handled.
+
+## Import from Figma
+
+`import_figma` (or ⌘K → Import from Figma…) rebuilds a Figma frame as editable layers. It reads the frame through Figma's REST API with a personal access token that can read file content; the token is saved in Paperish's data folder (or read from `FIGMA_TOKEN`) and never reaches the editor. Paste a link to the frame (right-click → Copy link to selection). `src/server/import/figma.ts` maps the node JSON (typed with `@figma/rest-api-spec`) to HTML and runs it through the same parser as `write_html`:
+- **Auto layout** becomes flex: direction, gap, padding, alignment and wrap. Fill and hug sizing become `flex: 1`, `align-self: stretch` or no size at all; fixed sizes stay in px.
+- **Absolute children** keep their position and follow their constraints: right, left and right, bottom, and scale (as %).
+- **Text** keeps family, size, weight, line height, letter spacing, case, decoration and alignment. Mixed styles inside one text layer are flattened to the base style.
+- **Fills, strokes, radii and effects** become CSS: solid and linear, radial or angular gradients, image fills (downloaded into `data/assets`), outlines or borders, box and text shadows, layer and background blur, blend modes and rotation.
+- **Vectors and icons** (frames that only hold vector shapes) are exported as SVG. Masked groups and layer types without a CSS equivalent are exported as 2x PNG.
 
 ## Real components (React, Vue)
 

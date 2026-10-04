@@ -25,6 +25,7 @@
         "zod": "^4.6.5",
       },
       "devDependencies": {
+        "@figma/rest-api-spec": "^0.43.0",
         "@oxlint/plugins": "1.86.0",
         "@types/node": "^26.6.3",
         "@types/react": "^19.3.0",
@@ -127,6 +128,8 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.28.2", "", { "os": "win32", "cpu": "ia32" }, "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.28.2", "", { "os": "win32", "cpu": "x64" }, "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g=="],
+
+    "@figma/rest-api-spec": ["@figma/rest-api-spec@0.43.0", "", {}, "sha512-sbFm28WM8MsawyLSYO9Ddne+8xytWU5D7oCOOWyzRvLpd9InFHihC37dQBVJVzAVyT7HpwYtU4wlm+ALogC38g=="],
 
     "@hono/node-server": ["@hono/node-server@1.19.17", "", { "peerDependencies": { "hono": "^4" } }, "sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ=="],
 

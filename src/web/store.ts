@@ -36,7 +36,7 @@ export type Tool = 'move' | 'frame' | 'text' | 'hand' | 'comment'
 
 export type PreviewMode = 'fit' | 'actual' | 'responsive'
 
-export type ImportSource = 'url'
+export type ImportSource = 'url' | 'figma'
 
 interface DevicePrefs {
   /** null = full window width. */
@@ -607,7 +607,7 @@ class Store {
     this.emit()
   }
 
-  saveSettings(patch: { openRouterKey?: string; theme?: ThemeSetting }) {
+  saveSettings(patch: { openRouterKey?: string; figmaToken?: string; theme?: ThemeSetting }) {
     this.send({ t: 'settings', ...patch })
   }
 
