@@ -26,6 +26,7 @@ runs:
       run: |
         bun install --frozen-lockfile
         bunx vite build
+        node node_modules/electron/install.js
         sudo chown root:root node_modules/electron/dist/chrome-sandbox
         sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
         command -v xvfb-run >/dev/null || (sudo apt-get update -q && sudo apt-get install -yq xvfb)
