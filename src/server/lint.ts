@@ -1,8 +1,10 @@
 import { createHash } from 'node:crypto'
 import type { AuditFact, LintIssue, LintState, Op, StyleValue } from '../shared/types'
+import { checkAccess } from './a11y'
 import { px, readDesignMd, type DesignSystem } from './design-md'
 import { engine } from './engine'
 import { decide } from './jev'
+import { wcagLevel } from './projects'
 import { openRouterKey } from './settings'
 import type { OpenFile } from './workspace'
 
@@ -110,8 +112,6 @@ const offList = (vs: number[], what: string) => {
   return n <= 3 ? pxList(vs) : `${n} ${what}`
 }
 
-const large = (t: AuditFact) => t.fontSize! >= 24 || (t.fontSize! >= 18.66 && t.fontWeight! >= 700)
-
 const set = (id: string, styles: Record<string, StyleValue | null>): Op => ({
   t: 'styles',
   id,
@@ -149,26 +149,10 @@ function checkTokens(
     out.push(issue)
   }
 
+  for (const i of checkAccess(f.doc.nodes, facts, f.checkout ? wcagLevel(f.checkout) : 'AA'))
+    add(i.rule, i.title, i.detail, i.nodeIds, i.severity, i.fix)
+
   const texts = facts.filter((t) => t.contrast !== undefined)
-
-  const low = texts.filter((t) => t.contrast! < (large(t) ? 3 : 4.5))
-
-  if (low.length) {
-    const w = low.reduce((a, b) => (a.contrast! < b.contrast! ? a : b))
-
-    const detail =
-      low.length === 1
-        ? `${w.color} on ${w.backdrop} is ${w.contrast}:1, needs ${large(w) ? 3 : 4.5}:1`
-        : `${low.length} texts below AA, lowest ${w.color} on ${w.backdrop} at ${w.contrast}:1`
-
-    add(
-      'color/contrast',
-      'Low contrast',
-      detail,
-      low.map((t) => t.id),
-      'error',
-    )
-  }
 
   const typography = Object.values(ds?.typography ?? {})
   const sizes = typography.map((t) => px(t.fontSize)).filter((v): v is number => v !== null)

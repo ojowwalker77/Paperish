@@ -985,12 +985,34 @@ function contrast(a: number[], b: number[]) {
 
 const num = (v: string) => Math.round((parseFloat(v) || 0) * 100) / 100
 
+const placed = (v: string) => v !== 'auto' && !v.startsWith('span')
+
+function reorderOf(e: Element, cs: CSSStyleDeclaration): string | undefined {
+  const kids = [...e.children].map((c) => getComputedStyle(c))
+
+  if (cs.display.includes('flex')) {
+    if (cs.flexDirection.endsWith('reverse')) return cs.flexDirection
+
+    if (cs.flexWrap === 'wrap-reverse') return 'wrap-reverse'
+  }
+
+  if (kids.some((k) => k.order !== '0')) return 'order'
+
+  if (
+    cs.display.includes('grid') &&
+    (cs.gridAutoFlow.includes('dense') ||
+      kids.some((k) => placed(k.gridRowStart) || placed(k.gridColumnStart)))
+  )
+    return 'grid placement'
+}
+
 function audit({ ids }: { ids: string[] }) {
   const nodes = store.doc!.nodes
   const out: Record<string, AuditFact[]> = {}
 
   for (const root of ids) {
     const facts: AuditFact[] = []
+    const origin = el(root)?.getBoundingClientRect()
 
     const walk = (id: string, depth: number) => {
       const n = nodes[id]
@@ -1022,11 +1044,18 @@ function audit({ ids }: { ids: string[] }) {
           cs.borderBottomRightRadius,
           cs.borderBottomLeftRadius,
         ].map(num),
+        x: Math.round(r.left - (origin?.left ?? 0)),
+        y: Math.round(r.top - (origin?.top ?? 0)),
         width: Math.round(r.width),
         height: Math.round(r.height),
       }
 
-      if (/flex|grid/.test(cs.display)) f.gap = [num(cs.rowGap), num(cs.columnGap)]
+      if (/flex|grid/.test(cs.display)) {
+        f.gap = [num(cs.rowGap), num(cs.columnGap)]
+        const reorder = reorderOf(e, cs)
+
+        if (reorder) f.reorder = reorder
+      }
 
       if (bg[3] > 0) f.background = hex(bg)
 

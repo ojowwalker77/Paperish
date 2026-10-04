@@ -350,8 +350,11 @@ export type AuditFact = {
   gap?: number[]
   /** top-left, top-right, bottom-right, bottom-left */
   radius: number[]
+  x: number
+  y: number
   width: number
   height: number
+  reorder?: string
 }
 
 export interface LintIssue {

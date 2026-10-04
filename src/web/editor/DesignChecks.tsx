@@ -231,7 +231,7 @@ function Source({ lint }: { lint: LintState }) {
       <span>
         {lint.designMd
           ? 'Checked against DESIGN.md.'
-          : 'No DESIGN.md at the repo root, so only contrast and the 4px grid are checked.'}{' '}
+          : 'No DESIGN.md at the repo root, so only accessibility and the 4px grid are checked.'}{' '}
         <button onClick={() => store.pickDesignMd()}>
           {lint.designMd ? 'Change' : 'Choose file'}
         </button>

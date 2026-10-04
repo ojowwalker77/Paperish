@@ -274,7 +274,7 @@ export function parseHtml(html: string, ctx: ParseContext): ParseResult {
 
       const attrs: Record<string, string> = {}
 
-      if (el.attribs.alt) attrs.alt = el.attribs.alt
+      if (el.attribs.alt !== undefined) attrs.alt = el.attribs.alt
       const imgStyles: Styles = { ...styles }
 
       if (!imgStyles.width && el.attribs.width) imgStyles.width = px(el.attribs.width)
