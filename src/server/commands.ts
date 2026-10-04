@@ -1,7 +1,7 @@
 import { canHaveChildren, pageOf, subtreeIds } from '../shared/ops'
 import type { Op, ProjectState, Styles } from '../shared/types'
 import { nextVersionName, viewsOf } from '../shared/views'
-import { cloneSubtree, parseHtml } from './html'
+import { cloneSubtree, parseHtml, type ParseResult } from './html'
 import { findPlacement } from './placement'
 import {
   componentsFor,
@@ -25,16 +25,7 @@ export async function insertHtml(
   const parent = f.node(parentId)
 
   if (!canHaveChildren(parent)) throw new Error(`"${parent.name}" cannot have children`)
-  const tokens = classTokens(html)
-
-  const { subtrees } = parseHtml(html, {
-    mint: () => f.mint(),
-    cloneSource: (id) =>
-      f.doc.nodes[id] ? subtreeIds(f.doc.nodes, id).map((i) => f.doc.nodes[i]) : null,
-    tailwind: tokens.length ? await tailwindResolver(tokens, tailwindEntryFor(f.doc)) : undefined,
-    width: parseFloat(String(parent.styles.width)) || 1440,
-    components: componentsFor(f.doc),
-  })
+  const { subtrees } = await htmlToNodes(f, html, parseFloat(String(parent.styles.width)) || 1440)
 
   const at = index ?? parent.children.length
 
@@ -47,6 +38,19 @@ export async function insertHtml(
   f.transact(ops, 'user', 'insert')
 
   return subtrees.map((s) => s[0].id)
+}
+
+export async function htmlToNodes(f: OpenFile, html: string, width: number): Promise<ParseResult> {
+  const tokens = classTokens(html)
+
+  return parseHtml(html, {
+    mint: () => f.mint(),
+    cloneSource: (id) =>
+      f.doc.nodes[id] ? subtreeIds(f.doc.nodes, id).map((i) => f.doc.nodes[i]) : null,
+    tailwind: tokens.length ? await tailwindResolver(tokens, tailwindEntryFor(f.doc)) : undefined,
+    width,
+    components: componentsFor(f.doc),
+  })
 }
 
 /** Link (or unlink with null) a codebase to a file and start its component host. */

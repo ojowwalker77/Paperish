@@ -36,6 +36,8 @@ export type Tool = 'move' | 'frame' | 'text' | 'hand' | 'comment'
 
 export type PreviewMode = 'fit' | 'actual' | 'responsive'
 
+export type ImportSource = 'url'
+
 interface DevicePrefs {
   /** null = full window width. */
   id: string | null
@@ -87,7 +89,7 @@ class Store {
   /** The .paperish file this document saves into, and its git status. */
   repo: RepoState | null = null
   changesOpen = false
-  importOpen = false
+  importSource: ImportSource | null = null
   helpOpen = false
   private myTokens = new Set<string>()
   previewMode: PreviewMode = loadPreviewMode()
@@ -586,11 +588,11 @@ class Store {
     this.emit()
   }
 
-  importUrl(url: string, width: number) {
+  startImport(msg: Extract<ClientMsg, { t: `import${string}` }>) {
     const token = Math.random().toString(36).slice(2)
     this.myTokens.add(token)
-    this.send({ t: 'importUrl', url, width, token })
-    this.importOpen = false
+    this.send({ ...msg, token })
+    this.importSource = null
     this.emit()
   }
 
@@ -749,8 +751,8 @@ class Store {
     this.emit()
   }
 
-  setImportOpen(open: boolean) {
-    this.importOpen = open
+  setImport(source: ImportSource | null) {
+    this.importSource = source
     this.emit()
   }
 
