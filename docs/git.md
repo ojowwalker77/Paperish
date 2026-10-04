@@ -31,3 +31,37 @@ paperish diff --base main --out paperish-diff
 - **`--url`** prefixes the image links in `summary.md`, for when the images are hosted somewhere else.
 
 It runs on a scratch data folder and its own port, so it works next to a running Paperish. On Linux without a display, run it under `xvfb-run`. From a clone of Paperish: `npx vite build && NODE_ENV=production npx electron . diff …`.
+
+## Design diffs on pull requests
+
+The repo's `action.yml` runs `paperish diff` on every pull request that touches a `.paperish` file and keeps one comment on the PR up to date with it. Add this workflow as `.github/workflows/paperish-design-diff.yml`:
+
+```yaml
+name: Paperish design diff
+
+on:
+  pull_request:
+    paths: ['**/*.paperish']
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: paperish-design-diff-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  design-diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ojowwalker77/Paperish@v0.1.10
+```
+
+- **Rendering** happens on the runner: the action builds Paperish at its own tag and runs it under `xvfb-run`. Both sides render on the same machine, so fonts and anti-aliasing match.
+- **Images** are pushed to the `paperish-design-diffs` branch (`images-branch` input), under `pr-<number>/<sha>/`, and the comment links to them, so they show in private repos too. Each run replaces that PR's folder. Delete the branch whenever you like; the next run creates it again.
+- **Every run** also uploads the images, `summary.md` and `diff.json` as the `paperish-design-diff` artifact.
+- **Pull requests from forks** get the artifact but no comment, since their token can't push or comment.
