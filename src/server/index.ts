@@ -20,6 +20,7 @@ import { toJSX } from './serialize'
 import { createMcpServer, mcpRequest } from './tools'
 import { call, onMain } from './host'
 import { duplicate, forkVersion, insertHtml } from './commands'
+import { designDiff as runDesignDiff, type DiffJob } from './design-diff'
 import { compareCommit, fileHistory } from './history'
 import {
   closeProjects,
@@ -675,6 +676,8 @@ onProjectChange((state) => {
     } catch {}
   }
 })
+
+export const designDiff = (job: DiffJob) => runDesignDiff(workspace, job)
 
 /** Save everything and stop the codebases' dev servers. */
 export async function shutdown() {

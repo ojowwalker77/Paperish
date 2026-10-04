@@ -16,3 +16,18 @@ A repo has checkouts: the main one and any git worktrees, which is where agents 
 - **Agents reach their own checkout.** The `.mcp.json` entry sends `X-Paperish-Dir: ${PWD}`, so a Claude Code session started inside a worktree targets that worktree. Worktrees made inside a session (`claude --worktree`, subagents) share the parent's MCP connection, so Paperish can't tell them apart from the header. For those, agents `open_file` the `.paperish` path under their working directory and pass its `fileId` (or `cwd` to `list_files`/`create_file`), as the tool descriptions and guide tell them. A call that names no file and no directory in a repo with several checkouts fails and asks for one, rather than guess and edit another agent's worktree.
 
 For agents, `compare_revision` summarizes what changed since a revision ("HEAD", "main"), and `visual_diff` takes `reference.revision` for a single node.
+
+## Design diffs from the command line
+
+`paperish diff` renders every `.paperish` file a branch changed, headless, and compares each artboard with the base branch, using the same engine as **Changes**:
+
+```sh
+paperish diff --base main --out paperish-diff
+```
+
+- **`--base`** is the branch or revision to compare with (default `main`); files are compared from where the branch forked off it.
+- **`--head`** is the revision to compare (default: the working tree, including new untracked files).
+- **`--out`** gets `summary.md` (a short report per artboard: what changed, the content-match score, before | after | heatmap images), `diff.json` and the JPEG images.
+- **`--url`** prefixes the image links in `summary.md`, for when the images are hosted somewhere else.
+
+It runs on a scratch data folder and its own port, so it works next to a running Paperish. On Linux without a display, run it under `xvfb-run`. From a clone of Paperish: `npx vite build && NODE_ENV=production npx electron . diff …`.
