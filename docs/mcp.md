@@ -22,6 +22,24 @@ Extras beyond Paper:
 - `write_html` returns the created subtree with real sizes, and flags zero-size nodes and artboard overflow.
 - Grid and other CSS render as-is, because it's a real browser.
 
+## Stdio
+
+The `.mcp.json` entry is HTTP, so an agent started while the app is closed can't connect and sees no tools. The app also runs as a stdio MCP server: it lists the tools straight away and forwards each call to the running app, or answers that Paperish isn't running.
+
+```bash
+# macOS
+claude mcp add paperish -- /Applications/Paperish.app/Contents/MacOS/Paperish --mcp <project id>
+# Linux (.deb)
+claude mcp add paperish -- paperish --mcp <project id>
+# From source
+claude mcp add paperish -- /path/to/paperish/node_modules/.bin/electron /path/to/paperish --mcp <project id>
+```
+
+- The project id is the `id` in `design/paperish.json`. Leave it out for Scratch.
+- Calls act on the checkout the agent was started in, like the HTTP entry.
+- `claude mcp add` writes a local entry, which Claude Code prefers over the repo's `.mcp.json`.
+- Agents started from an Electron editor (VS Code, Cursor) can inherit `ELECTRON_RUN_AS_NODE`. Set it to an empty string in the server's `env`.
+
 ## Tailwind
 
 `write_html` also accepts Tailwind classes (`class="flex gap-4 rounded-xl bg-white p-6"`). Classes are compiled with Tailwind v4 and resolved into inline styles, so the layers stay editable:

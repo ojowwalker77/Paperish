@@ -8,13 +8,14 @@ import { watchUpdates } from './updater'
 
 app.setName('Paperish')
 
-const HELP = `Usage: paperish [--help] [--version]
+const HELP = `Usage: paperish [--help] [--version] [--mcp [project id]]
 
 A design canvas that agents edit over MCP.
 
 Options:
   -h, --help     Print this help and exit
   -v, --version  Print the version and exit
+  --mcp [id]     Serve a project's MCP tools over stdio (default Scratch), forwarding calls to the running app
 
 Environment:
   PAPERISH_PORT  Server port (default 29980); agents connect to /mcp/<project id>
@@ -33,10 +34,19 @@ if (flags.some((a) => a === '--version' || a === '-v')) {
   process.exit(0)
 }
 
-// One app per machine: a second launch focuses this one (see 'second-instance').
-const primary = app.requestSingleInstanceLock()
+const mcp = flags.indexOf('--mcp')
 
-if (!primary) app.quit()
+if (mcp >= 0) {
+  app.dock?.hide()
+  void import('./mcp').then(({ serveStdio }) =>
+    serveStdio(flags[mcp + 1] ?? 'scratch', () => app.exit(0)),
+  )
+}
+
+// One app per machine: a second launch focuses this one (see 'second-instance').
+const primary = mcp < 0 && app.requestSingleInstanceLock()
+
+if (!primary && mcp < 0) app.quit()
 
 let origin = ''
 
