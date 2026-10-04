@@ -36,7 +36,7 @@ export type Tool = 'move' | 'frame' | 'text' | 'hand' | 'comment'
 
 export type PreviewMode = 'fit' | 'actual' | 'responsive'
 
-export type ImportSource = 'url' | 'figma'
+export type ImportSource = 'url' | 'figma' | 'paper'
 
 interface DevicePrefs {
   /** null = full window width. */
