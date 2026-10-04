@@ -228,7 +228,7 @@ class Store {
   }
 
   /** Send a command whose reply is the ids the server created. */
-  command(msg: Extract<ClientMsg, { t: 'insertHtml' | 'duplicate' }>): Promise<string[]> {
+  command(msg: Extract<ClientMsg, { t: 'insertHtml' | 'duplicate' | 'fork' }>): Promise<string[]> {
     return new Promise((resolve) => {
       this.pendingCreated.push(resolve)
       this.send(msg)

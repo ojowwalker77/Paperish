@@ -38,11 +38,13 @@ The navigator (⌘\) lists each page as a folder of views: its artboards. Artboa
 
 Click a view to show it alone on the canvas, with its versions in a dock below. Click the page to see all of its artboards again.
 
+A version can fork into several, to explore directions in parallel: Fork (⇧⌘N) branches a new version off the one shown, and agents fork with `fork_version`, giving each a one-line rationale. The dock lists each branch after the version it came from, marks where one starts (`v4 from v2`), and shows the rationale of the version on the canvas above it.
+
 | Keys | Action |
 | --- | --- |
 | `[` / `]` | Previous / next version |
 | ⌥↑ / ⌥↓ | Previous / next view on the page |
-| ⇧⌘N | Copy the version shown into a new one |
+| ⇧⌘N | Fork the version shown into a new one |
 | Esc | Back to the whole page |
 
 ## Comments

@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
 import type { FileSummary, Page } from '../../shared/types'
 import { artboardOf } from '../../shared/ops'
+import { viewsOf, type View } from '../../shared/views'
 import { shallow, store, useStore } from '../store'
 import { Icon } from './icons'
 import { InlineInput } from './InlineInput'
 import { timeAgo, useOutside } from './Topbar'
-import { focusBoard, unfocus, viewsOf, type View } from './views'
+import { focusBoard, unfocus } from './views'
 
 // Where you are, as one tree over the canvas (⌘\): the project and its branch
 // on top, then its files, the open one with its pages as folders of views.
@@ -355,7 +356,7 @@ function ViewRow({ view, page }: { view: View; page: Page }) {
   return (
     <button
       className={`pw-nav-row pw-nav-view ${focused ? 'active' : ''}`}
-      onClick={() => focusBoard(view.versions[count - 1], page.id)}
+      onClick={() => focusBoard(view.latest, page.id)}
     >
       <span className="pw-menu-label">{view.name}</span>
       {agent && <span className="pw-nav-agent" />}
