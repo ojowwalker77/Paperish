@@ -1,7 +1,11 @@
 import fs from 'node:fs'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import path from 'node:path'
-import { McpServer, type CallToolResult } from '@modelcontextprotocol/server'
+import {
+  McpServer,
+  type CallToolRequestParams,
+  type CallToolResult,
+} from '@modelcontextprotocol/server'
 import { z } from 'zod'
 import { applyOps, artboardOf, canHaveChildren, pageOf, subtreeIds } from '../shared/ops'
 import { fontFamiliesOf, normalizeStyles } from '../shared/styles'
@@ -310,8 +314,11 @@ function isStyleString(v: StyleValue): v is string {
   return Object.prototype.toString.call(v) === '[object String]'
 }
 
-/** Tools for one project: the /mcp/<project id> endpoint. */
-export function createMcpServer(ws: Workspace, projectId: string): McpServer {
+/** Runs a tool in the app instead of here: the stdio proxy. */
+export type Forward = (name: string, args: CallToolRequestParams['arguments']) => Promise<Result>
+
+/** Tools for one project: the /mcp/<project id> endpoint, or the stdio proxy's tools when `forward` is given. */
+export function createMcpServer(ws: Workspace, projectId: string, forward?: Forward): McpServer {
   const server = new McpServer(
     { name: 'paperish', version: '0.1.0' },
     { instructions: SERVER_INSTRUCTIONS },
@@ -345,7 +352,7 @@ export function createMcpServer(ws: Workspace, projectId: string): McpServer {
       args: z.infer<z.ZodObject<S>>,
     ) => {
       try {
-        return await handler(args)
+        return await (forward ? forward(name, args) : handler(args))
       } catch (e) {
         // SAFETY: tool handlers throw Error instances.
         return fail((e as Error).message ?? String(e))

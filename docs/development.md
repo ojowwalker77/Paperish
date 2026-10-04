@@ -25,4 +25,3 @@ Run `./scripts/checks` before committing: typecheck, lint, format, knip, audit a
 - Multiplayer presence
 - Video and AVIF export
 - Intel (x64) builds
-- A stdio MCP proxy (so tools are listed before the app starts)

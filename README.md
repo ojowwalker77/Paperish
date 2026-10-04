@@ -21,7 +21,7 @@ Paperish is an Electron app. The server runs in its main process on `http://127.
 
 The app opens on your projects. **Add project…** picks a folder with the system dialog; inside a git repo it uses the repo's root. Adding one sets it up:
 - **`design/`** holds the project's designs as `.paperish` files, plus `design/paperish.json` with the project's id. Commit both.
-- **`.mcp.json`** gets a `paperish` entry pointing at `http://127.0.0.1:29980/mcp/<project id>`, so Claude Code in that repo connects to this project with no setup. Commit it and teammates who add the same repo get it too. Other entries in the file are left alone.
+- **`.mcp.json`** gets a `paperish` entry pointing at `http://127.0.0.1:29980/mcp/<project id>`, so Claude Code in that repo connects to this project with no setup. Commit it and teammates who add the same repo get it too. Other entries in the file are left alone. To have tools listed before the app is open, use the [stdio proxy](docs/mcp.md#stdio) instead.
 - **The codebase** is the project itself when it has a `package.json`, so its components work on the canvas.
 
 **Scratch** is always there, for designs that don't belong to a repo. It lives in the app's data folder and agents reach it at `/mcp/scratch`.

@@ -73,10 +73,10 @@ const pending = new Map<number, { resolve: (v: HostValue) => void; reject: (e: E
 
 let calls = 0
 
-export const post = (msg: ServerMsg) => process.parentPort.postMessage(msg)
+export const post = (msg: ServerMsg) => process.parentPort?.postMessage(msg)
 
 export function onMain(fn: (msg: MainMsg) => void) {
-  process.parentPort.on('message', (e) => fn(e.data))
+  process.parentPort?.on('message', (e) => fn(e.data))
 }
 
 onMain((msg) => {
