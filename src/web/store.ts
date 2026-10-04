@@ -90,6 +90,7 @@ class Store {
   repo: RepoState | null = null
   changesOpen = false
   importSource: ImportSource | null = null
+  importPrefill = ''
   helpOpen = false
   private myTokens = new Set<string>()
   previewMode: PreviewMode = loadPreviewMode()
@@ -751,8 +752,9 @@ class Store {
     this.emit()
   }
 
-  setImport(source: ImportSource | null) {
+  setImport(source: ImportSource | null, prefill = '') {
     this.importSource = source
+    this.importPrefill = prefill
     this.emit()
   }
 
