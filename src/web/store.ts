@@ -2,6 +2,7 @@ import { useCallback, useRef, useSyncExternalStore } from 'react'
 import { applyOps, artboardOf } from '../shared/ops'
 import { ensureFonts, familiesIn } from './render/fonts'
 import type {
+  AgentStep,
   CheckoutInfo,
   ClientMsg,
   Doc,
@@ -107,6 +108,8 @@ class Store {
   lint: LintState | null = null
   lintOpen = false
   private lintTimer = 0
+  steps: AgentStep[] = []
+  stepsOpen = false
   /** An agent's options waiting for the user to pick one, and the note to send with the pick. */
   proposal: Proposal | null = null
   pickNote = ''
@@ -312,6 +315,9 @@ class Store {
       case 'working':
         this.working = msg.ids
         break
+      case 'steps':
+        this.steps = msg.steps
+        break
       case 'settings':
         this.settings = msg.settings
         this.scheduleLint(0)
@@ -371,6 +377,8 @@ class Store {
         this.changesOpen = false
         this.lint = null
         this.lintOpen = false
+        this.steps = []
+        this.stepsOpen = false
         this.proposal = null
         this.activeThread = null
         this.commentDraft = null
@@ -576,7 +584,11 @@ class Store {
   setInspectOpen(open: boolean) {
     this.inspectOpen = open
 
-    if (open) this.lintOpen = false
+    if (open) {
+      this.lintOpen = false
+      this.stepsOpen = false
+    }
+
     this.emit()
   }
 
@@ -629,8 +641,27 @@ class Store {
   setLintOpen(open: boolean) {
     this.lintOpen = open
 
-    if (open) this.inspectOpen = false
+    if (open) {
+      this.inspectOpen = false
+      this.stepsOpen = false
+    }
+
     this.emit()
+  }
+
+  setStepsOpen(open: boolean) {
+    this.stepsOpen = open
+
+    if (open) {
+      this.inspectOpen = false
+      this.lintOpen = false
+    }
+
+    this.emit()
+  }
+
+  revertStep(step: number) {
+    this.send({ t: 'revertStep', step })
   }
 
   pickDesignMd() {

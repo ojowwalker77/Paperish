@@ -45,6 +45,10 @@ Click a view to show it alone on the canvas, with its versions in a dock below. 
 | ⇧⌘N | Copy the version shown into a new one |
 | Esc | Back to the whole page |
 
+## Agent steps
+
+The status bar counts the agent's steps on this file; click it for the timeline. A step is the agent's consecutive edits under one short why, which it passes to the edit tools. Revert undoes just that step as a new edit, so ⌘Z brings it back. Steps come from the undo history shared with the agent: undoing an agent's edit takes it off the list.
+
 ## Comments
 
 Press C (or the comment count in the status bar) for comment mode: pins show on the canvas and the threads open in a panel. Click a layer to pin a comment to it; reply, resolve or delete from the panel. You're named from the checkout's `git config user.name`; agents sign with their own name, and their pins are orange. Comments live in the `.paperish` file and stay out of undo, so undoing an edit never drops one. Agents see `openComments` in `get_basic_info`, reply with `reply_to_comment_thread` once they've addressed one, then resolve it; `create_comment_thread` leaves a note for later.
