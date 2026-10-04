@@ -1,0 +1,27 @@
+{
+  "base": "a6dbb3f76b1006cf769e098e5b308bb4acd5812f",
+  "head": "6969568d7140299b5391b954499eb26905274eab",
+  "files": [
+    {
+      "path": "design/paperish.paperish",
+      "status": "modified",
+      "boards": [
+        {
+          "id": "N7WS",
+          "name": "Projects",
+          "pageName": "Home",
+          "status": "changed",
+          "moved": false,
+          "contentScore": 0.9492063492063492,
+          "summary": "Edited Paperish (color, text).",
+          "images": {
+            "before": "design-paperish/projects-n7ws-before.jpg",
+            "after": "design-paperish/projects-n7ws-after.jpg",
+            "heat": "design-paperish/projects-n7ws-heat.jpg"
+          }
+        }
+      ],
+      "notes": []
+    }
+  ]
+}
