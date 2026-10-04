@@ -31,11 +31,9 @@ const VECTOR_TYPES = new Set(['VECTOR', 'STAR', 'LINE', 'REGULAR_POLYGON', 'BOOL
 const CONTAINERS = new Set(['FRAME', 'GROUP', 'COMPONENT', 'COMPONENT_SET', 'INSTANCE', 'SECTION'])
 
 export function figmaJob(f: OpenFile, opts: { url: string; name?: string }): ImportJob {
-  const ref = parseFigmaUrl(opts.url)
-
   return {
     label: 'Figma',
-    run: (progress) => importFigma(f, { ...ref, name: opts.name }, progress),
+    run: (progress) => importFigma(f, { ...parseFigmaUrl(opts.url), name: opts.name }, progress),
   }
 }
 
