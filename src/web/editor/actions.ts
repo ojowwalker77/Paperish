@@ -1,5 +1,5 @@
 import { toStaticHTML } from '../../shared/html'
-import { artboardOf } from '../../shared/ops'
+import { artboardOf, pageOf, subtreeIds } from '../../shared/ops'
 import type { Op, PNode, StyleValue } from '../../shared/types'
 import { store, type Camera } from '../store'
 
@@ -319,6 +319,54 @@ export async function duplicateSelection() {
   if (!store.selection.length) return
   const ids = await store.command({ t: 'duplicate', ids: store.selection })
   store.select(ids)
+}
+
+export function createComponent() {
+  const ids = store.selection.filter((id) => !store.node(id)?.main)
+
+  store.tx(
+    ids.map((id) => ({ t: 'patch', id, patch: { main: true } })),
+    'create component',
+  )
+}
+
+export async function createInstance() {
+  const ids = store.selection.filter((id) => store.node(id)?.main)
+
+  if (ids.length) store.select(await store.command({ t: 'duplicate', ids, instance: true }))
+}
+
+export function instanceRoot(id: string): PNode | undefined {
+  for (let n = store.node(id); n?.mainId; n = store.node(n.parent))
+    if (store.node(n.mainId)?.main) return n
+
+  return undefined
+}
+
+export function detachInstance(id: string) {
+  const root = instanceRoot(id)
+
+  if (!root) return
+
+  const ops: Op[] = subtreeIds(store.doc!.nodes, root.id).flatMap((i) =>
+    store.node(i)?.mainId ? [{ t: 'patch', id: i, patch: { mainId: null } }] : [],
+  )
+
+  store.tx(ops, 'detach instance')
+}
+
+export function goToMain(id: string) {
+  const main = store.node(store.node(id)?.mainId)
+  const page = main && pageOf(store.doc!, main.id)
+
+  if (!main || !page) return
+
+  if (page.id !== store.pageId) store.setPage(page.id)
+  const board = artboardOf(store.doc!.nodes, main.id)
+
+  if (store.focus && board && board.id !== store.focus) store.setFocus(board.id)
+  store.select([main.id])
+  reveal([main.id])
 }
 
 export function nudge(dx: number, dy: number) {

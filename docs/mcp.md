@@ -13,6 +13,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
 | Write | `create_artboard` `write_html` `set_text_content` `update_styles` `rename_nodes` `duplicate_nodes` `move_nodes` `delete_nodes` `finish_working_on_nodes` |
+| Components | `create_component` `create_instance` |
 | Tokens | `get_tokens` `create_tokens` `set_tokens` |
 | Pick | `propose_options` `wait_for_pick` |
 | Knobs | `expose_knobs` `read_knobs` `commit_knobs` |

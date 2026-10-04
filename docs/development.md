@@ -20,7 +20,6 @@ Run `./scripts/checks` before committing: typecheck, lint, format, knip, audit a
 ## Not yet
 
 - Drag-to-reorder inside flex layouts and in the layer tree
-- Components and instances
 - Multiplayer presence
 - Video and AVIF export
 - Intel (x64) builds

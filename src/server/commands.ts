@@ -3,6 +3,7 @@ import type { Op, ProjectState, Styles } from '../shared/types'
 import { nextVersionName, viewsOf } from '../shared/views'
 import { cloneSubtree, parseHtml, type ParseResult } from './html'
 import { findPlacement } from './placement'
+import { instanceNodes } from './instances'
 import {
   componentsFor,
   ensureProject,
@@ -77,7 +78,7 @@ export async function linkProject(
   return ensureProject(root)
 }
 
-export function duplicate(f: OpenFile, ids: string[]): string[] {
+export function duplicate(f: OpenFile, ids: string[], instance?: boolean): string[] {
   const ops: Op[] = []
   const created: string[] = []
 
@@ -87,10 +88,12 @@ export function duplicate(f: OpenFile, ids: string[]): string[] {
     if (!src?.parent) continue
     const parent = f.doc.nodes[src.parent]
 
-    const copy = cloneSubtree(
-      subtreeIds(f.doc.nodes, id).map((i) => f.doc.nodes[i]),
-      () => f.mint(),
-    )
+    const copy = instance
+      ? instanceNodes(f, id)
+      : cloneSubtree(
+          subtreeIds(f.doc.nodes, id).map((i) => f.doc.nodes[i]),
+          () => f.mint(),
+        )
 
     if (parent.type === 'Root' || src.styles.position === 'absolute') {
       const left = parseFloat(String(src.styles.left ?? 0)) || 0
@@ -114,7 +117,7 @@ export function duplicate(f: OpenFile, ids: string[]): string[] {
     created.push(copy[0].id)
   }
 
-  f.transact(ops, 'user', 'duplicate')
+  f.transact(ops, 'user', instance ? 'create instance' : 'duplicate')
 
   return created
 }

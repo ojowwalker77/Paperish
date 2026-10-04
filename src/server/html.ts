@@ -572,10 +572,16 @@ export function cloneSubtree(
 ): PNode[] {
   for (const n of nodes) idMap[n.id] = mint()
 
-  return nodes.map((n) => ({
-    ...structuredClone(n),
-    id: idMap[n.id],
-    parent: n.parent && idMap[n.parent] ? idMap[n.parent] : null,
-    children: n.children.map((c) => idMap[c]),
-  }))
+  return nodes.map((n) => {
+    const copy: PNode = {
+      ...structuredClone(n),
+      id: idMap[n.id],
+      parent: n.parent && idMap[n.parent] ? idMap[n.parent] : null,
+      children: n.children.map((c) => idMap[c]),
+    }
+
+    delete copy.main
+
+    return copy
+  })
 }

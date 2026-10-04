@@ -1,7 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { NodeType } from '../../shared/types'
 import { store, useStore } from '../store'
-import { openPreview, reveal, setHidden, setLocked, zoomToFit } from './actions'
+import {
+  createComponent,
+  createInstance,
+  detachInstance,
+  goToMain,
+  instanceRoot,
+  openPreview,
+  reveal,
+  setHidden,
+  setLocked,
+  zoomToFit,
+} from './actions'
 import { insertComponent, propSummary } from './Components'
 import { Icon, NodeIcon } from './icons'
 
@@ -137,6 +148,15 @@ function useItems(): Item[] {
         () => selection.forEach((id) => setLocked(id, !first?.locked)),
         '⇧⌘L',
       )
+      const component = <Icon.Component size={12} />
+
+      if (first?.main) act('Create instance', () => void createInstance(), undefined, component)
+      else act('Create component', createComponent, '⌥⌘K', component)
+
+      if (first && instanceRoot(first.id)) {
+        act('Go to main component', () => goToMain(first.id), undefined, component)
+        act('Detach instance', () => detachInstance(first.id), undefined, component)
+      }
     }
 
     act('Preview', openPreview, 'P')

@@ -3,7 +3,14 @@ import { toStaticHTML } from '../../shared/html'
 import { parseStyleAttr, stylesToCss } from '../../shared/styles'
 import type { ComponentProp, JsonValue, Op, PNode, StyleValue } from '../../shared/types'
 import { shallow, store, useStore } from '../store'
-import { isMovable, rename } from './actions'
+import {
+  createInstance,
+  detachInstance,
+  goToMain,
+  instanceRoot,
+  isMovable,
+  rename,
+} from './actions'
 import { useWorldRects } from './measure'
 import { Icon, NodeIcon } from './icons'
 
@@ -277,6 +284,8 @@ function NodePanel({ nodes }: { nodes: PNode[] }) {
         </span>
       </section>
 
+      {!multi && <ComponentLink node={n} />}
+
       <section className="pw-section">
         <header className="pw-section-head">
           <span>Frame</span>
@@ -331,6 +340,44 @@ function NodePanel({ nodes }: { nodes: PNode[] }) {
       {!multi && <CssEditor node={n} />}
       {!multi && <ExportPanel node={n} />}
     </>
+  )
+}
+
+function ComponentLink({ node }: { node: PNode }) {
+  const main = useStore((s) => {
+    const root = instanceRoot(node.id)
+
+    return root && s.doc?.nodes[root.mainId!]
+  })
+
+  if (node.main)
+    return (
+      <section className="pw-section">
+        <header className="pw-section-head">
+          <span>Main component</span>
+          <button className="pw-text-btn" onClick={() => void createInstance()}>
+            Create instance
+          </button>
+        </header>
+      </section>
+    )
+
+  if (!main) return null
+
+  return (
+    <section className="pw-section">
+      <header className="pw-section-head">
+        <span>Instance of {main.name}</span>
+        <span className="pw-btn-row">
+          <button className="pw-text-btn" onClick={() => goToMain(node.id)}>
+            Main
+          </button>
+          <button className="pw-text-btn" onClick={() => detachInstance(node.id)}>
+            Detach
+          </button>
+        </span>
+      </header>
+    </section>
   )
 }
 
