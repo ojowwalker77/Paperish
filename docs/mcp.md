@@ -14,7 +14,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
 | Write | `create_artboard` `write_html` `set_text_content` `update_styles` `rename_nodes` `duplicate_nodes` `move_nodes` `delete_nodes` `finish_working_on_nodes` |
 | Components | `create_component` `create_instance` |
-| Tokens | `get_tokens` `create_tokens` `set_tokens` |
+| Tokens | `get_tokens` `create_tokens` `set_tokens` `import_tokens` |
 | Pick | `propose_options` `wait_for_pick` |
 | Knobs | `expose_knobs` `read_knobs` `commit_knobs` |
 | Comments | `list_comment_threads` `get_comment_thread` `list_comment_thread_authors` `set_comment_thread_status` `reply_to_comment_thread` `create_comment_thread` |
@@ -68,6 +68,13 @@ claude mcp add paperish -- /path/to/paperish/node_modules/.bin/electron /path/to
 - **Text** keeps family, size, weight, line height, letter spacing, case, decoration and alignment. Mixed styles inside one text layer are flattened to the base style.
 - **Fills, strokes, radii and effects** become CSS: solid and linear, radial or angular gradients, image fills (downloaded into `data/assets`), outlines or borders, box and text shadows, layer and background blur, blend modes and rotation.
 - **Vectors and icons** (frames that only hold vector shapes) are exported as SVG. Masked groups and layer types without a CSS equivalent are exported as 2x PNG.
+- **Variables** become tokens, and layers bound to a variable use `var(--token)`. Figma's variables API needs an Enterprise plan and the `file_variables:read` scope; without it, export the variables from Figma as JSON and pass them to `import_tokens`.
+
+`import_tokens` reads W3C Design Tokens (DTCG) JSON, the format Figma exports variables in. Figma's REST variables go through the same conversion (`src/server/import/dtcg.ts`):
+- Colors, dimensions, numbers, font families and font weights become tokens named after their path (`--color-brand-500`). Composite types such as shadows and typography are skipped.
+- Aliases (`{color.brand.500}`) become `var(--color-brand-500)`.
+- Figma scopes (`com.figma.scopes`) pick the token type: corner radius, gap, font size and so on. Otherwise the type comes from the name, and plain numbers default to spacing.
+- Only a collection's default mode is imported. Tokens whose name already exists are left alone.
 
 ## Real components (React, Vue)
 

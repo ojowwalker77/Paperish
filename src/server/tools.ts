@@ -49,7 +49,8 @@ import {
 } from './knobs'
 import { urlJob, type ImportResult } from './importer'
 import { figmaJob } from './import/figma'
-import { runImport } from './tasks'
+import { dtcgDocument, tokensFromDtcg, type DtcgEntry } from './import/dtcg'
+import { newTokens, runImport } from './tasks'
 import { findSampleData } from './samples'
 import { toJSX, toStaticHTML } from './serialize'
 import { ARTBOARD_GAP, findPlacement } from './placement'
@@ -1319,6 +1320,35 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
       const { rootId, result } = await runImport(f, figmaJob(f, { url, name }), 'agent')
 
       return text(await importSummary(f, rootId, result))
+    },
+  )
+
+  tool(
+    'import_tokens',
+    `Import design tokens from a W3C Design Tokens (DTCG) JSON document, such as Figma's own variable export (one file per mode) or Tokens Studio. Colors, dimensions, numbers, font families and font weights become Paperish tokens named after their path (--color-brand-500); aliases become var(--other); Figma scopes pick the token type. Tokens whose name already exists are left unchanged.`,
+    {
+      dtcg: z.string().min(2).describe('The DTCG JSON document, as text.'),
+      fileId: fileIdArg,
+    },
+    ({ dtcg, fileId }) => {
+      const f = resolve(fileId)
+      let doc: DtcgEntry
+
+      try {
+        doc = dtcgDocument.parse(JSON.parse(dtcg))
+      } catch {
+        return fail('That isn’t valid JSON.')
+      }
+
+      const tokens = tokensFromDtcg(doc)
+      const added = newTokens(f, tokens)
+
+      if (added.length)
+        f.transact([{ t: 'tokens', tokens: [...f.doc.tokens, ...added] }], 'agent', 'import_tokens')
+
+      return text(
+        `Added ${added.length} tokens${tokens.length > added.length ? `; ${tokens.length - added.length} already existed and were left unchanged (use set_tokens to change them)` : ''}.${added.length ? `\n\n${added.map((t) => `${t.name}: ${t.value} (${t.type})`).join('\n')}` : ''}`,
+      )
     },
   )
 

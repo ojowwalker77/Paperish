@@ -2,6 +2,7 @@ import type {
   GetFileNodesResponse,
   GetImageFillsResponse,
   GetImagesResponse,
+  GetLocalVariablesResponse,
 } from '@figma/rest-api-spec'
 import { extFor, storeBuffer } from '../assets'
 import { htmlToNodes } from '../commands'
@@ -22,7 +23,9 @@ import {
   type Css,
   type Kind,
   type Layer,
+  type Vars,
 } from './figma-css'
+import { dtcgDocument, tokensFromDtcg, variablesToDtcg } from './dtcg'
 
 const API = 'https://api.figma.com/v1'
 
@@ -111,6 +114,9 @@ async function importFigma(
   const warnings = new Set<string>()
   plan(root, kinds, imageRefs, warnings, true)
 
+  progress('Reading variables', 20)
+  const variables = await localVariables(ref.fileKey, token, root, warnings)
+
   const ids = (k: Kind) => [...kinds].flatMap(([id, v]) => (v === k ? [id] : []))
 
   progress('Exporting vectors', 30)
@@ -142,7 +148,7 @@ async function importFigma(
   )
 
   progress('Building layers', 85)
-  const ctx: EmitCtx = { kinds, media, svgMarkup, warnings, seq: 0 }
+  const ctx: EmitCtx = { kinds, media, svgMarkup, vars: variables.names, warnings, seq: 0 }
   const html = emit(root, null, ctx)
   const width = boxOf(root).width
   const parsed = await htmlToNodes(f, html, width)
@@ -159,6 +165,7 @@ async function importFigma(
   return {
     nodes,
     fontFaces: [],
+    tokens: variables.tokens,
     title: root.name,
     stats: {
       layers: nodes.length - 1,
@@ -169,6 +176,31 @@ async function importFigma(
     },
     warnings: [...warnings, ...parsed.warnings],
   }
+}
+
+async function localVariables(fileKey: string, token: string, root: Layer, warnings: Set<string>) {
+  try {
+    const { doc, names } = variablesToDtcg(
+      await api<GetLocalVariablesResponse>(`/files/${fileKey}/variables/local`, token),
+    )
+
+    return { tokens: tokensFromDtcg(dtcgDocument.parse(doc)), names }
+  } catch {
+    if (usesVariables(root))
+      warnings.add(
+        'Figma variables weren’t imported: reading them needs an Enterprise plan and the file_variables:read scope. Export them from Figma as JSON (DTCG) and pass it to import_tokens.',
+      )
+
+    return { tokens: [], names: new Map<string, string>() }
+  }
+}
+
+function usesVariables(n: Layer): boolean {
+  return (
+    Object.keys(n.boundVariables ?? {}).length > 0 ||
+    visible(n.fills).some((p) => p.type === 'SOLID' && p.boundVariables?.color) ||
+    (n.children ?? []).some(usesVariables)
+  )
 }
 
 async function exportsOf(
@@ -294,6 +326,7 @@ interface EmitCtx {
   kinds: Map<string, Kind>
   media: Map<string, string>
   svgMarkup: Map<string, string>
+  vars: Vars
   warnings: Set<string>
   seq: number
 }
@@ -305,7 +338,7 @@ function emit(n: Layer, parent: Layer | null, ctx: EmitCtx): string {
 
   const css = placement(n, parent, kind)
 
-  if (kind !== 'svg' && kind !== 'png') Object.assign(css, look(n, kind))
+  if (kind !== 'svg' && kind !== 'png') Object.assign(css, look(n, kind, ctx.vars))
 
   if (kind === 'svg') {
     const raw = ctx.svgMarkup.get(n.id)
@@ -343,7 +376,7 @@ function emit(n: Layer, parent: Layer | null, ctx: EmitCtx): string {
   if (flowAbs && parent && css.position !== 'absolute') css.position = 'relative'
 
   if (kind === 'box') {
-    const bg = background(n, ctx.media)
+    const bg = background(n, ctx.media, ctx.vars)
     Object.assign(css, bg)
   }
 
