@@ -33,6 +33,7 @@ import { checkBoards, lintFile } from './lint'
 import { agentNamed, createThread, reply, setStatus } from './comments'
 import { propose, waitForPick } from './proposals'
 import { runImport } from './tasks'
+import { findSampleData } from './samples'
 import { toJSX, toStaticHTML } from './serialize'
 import { ARTBOARD_GAP, findPlacement } from './placement'
 import { newPage, type OpenFile, type Workspace } from './workspace'
@@ -1134,6 +1135,26 @@ export function createMcpServer(ws: Workspace, projectId: string): McpServer {
         count: list.length,
         components: list.map(componentSummary),
       })
+    },
+  )
+
+  tool(
+    'find_sample_data',
+    'Realistic content from the repo to fill designs with instead of lorem ipsum: fixtures, seed files, mocks, Storybook args, test data and JSON, plus TypeScript types to infer shapes when there is no data. Read-only and size-bounded.',
+    {
+      query: z
+        .string()
+        .optional()
+        .describe(
+          'What the design shows, e.g. "invoice" or "User". Omit to list general sample data.',
+        ),
+      fileId: fileIdArg,
+    },
+    async ({ query, fileId }) => {
+      const f = resolve(fileId)
+      const root = f.doc.project?.root ?? f.checkout ?? ws.project(projectId).root
+
+      return json({ root, ...(await findSampleData(root, query)) })
     },
   )
 

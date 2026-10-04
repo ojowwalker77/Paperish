@@ -8,7 +8,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | --- | --- |
 | Files | `list_files` `open_file` `create_file` `create_page` |
 | Repo | `compare_revision` |
-| Codebase | `link_project` `list_components` `set_component_props` |
+| Codebase | `link_project` `list_components` `set_component_props` `find_sample_data` |
 | Import | `import_url` |
 | Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
@@ -48,6 +48,14 @@ A project with a `package.json` at its root is its own codebase. In a monorepo, 
 - **Renders each instance live in an isolated iframe** that sizes to its content. Props and children arrive over `postMessage`, HMR keeps instances current as you edit the code, and agent screenshots include them.
 
 Agents use components by name in `write_html`, e.g. `<Button variant="outline">Save</Button>` or `<PricingCard plan="Pro" price={24} highlighted />`. Children can nest other components and HTML. `set_component_props` edits instances, and `get_jsx` emits the real `import` lines.
+
+## Sample data
+
+`find_sample_data` gives agents real content for designs instead of lorem ipsum. Given a query such as `invoice` or `User`, it searches the linked codebase (or the checkout) for:
+- **Data:** fixtures, seed files, mocks, Storybook `args`, test data and JSON files, ranked in that order. JSON arrays are trimmed to their first items.
+- **Shapes:** TypeScript interfaces and types whose name matches, for when there's no data to copy.
+
+It's read-only and bounded: dependencies and build output are skipped, files over 256 KB aren't read, and the reply holds at most 8 excerpts and 6 types of up to 1,500 characters each, listing further matches by path.
 
 ## Visual diff
 

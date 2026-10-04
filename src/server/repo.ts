@@ -404,7 +404,7 @@ export function slugify(s: string): string {
   )
 }
 
-const SKIP_DIRS = new Set([
+export const SKIP_DIRS = new Set([
   'node_modules',
   'dist',
   'build',
