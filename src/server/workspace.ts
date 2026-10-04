@@ -2,7 +2,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { WebSocket } from 'ws'
 import { applyOps, artboardOf } from '../shared/ops'
-import type { Doc, FileSummary, Op, PNode, Page, ProjectInfo, ServerMsg } from '../shared/types'
+import type {
+  AgentStep,
+  Doc,
+  FileSummary,
+  Op,
+  PNode,
+  Page,
+  ProjectInfo,
+  ServerMsg,
+} from '../shared/types'
 import { engine } from './engine'
 import { call } from './host'
 import { branches, commitDate, listTree, resolveRev, showFile } from './git'
@@ -22,6 +31,10 @@ interface Tx {
   inverse: Op[]
   origin: Origin
   label?: string
+  why?: string
+  step?: number
+  reverts?: number
+  at: string
 }
 
 export interface Client {
@@ -51,6 +64,8 @@ export class OpenFile {
   ref: { branch: string; rel: string } | null = null
   private saveTimer: NodeJS.Timeout | null = null
   private savedName: string
+  private stepSeq = 0
+  private sentSteps = ''
   private dirty = false
   private deleted = false
 
@@ -97,6 +112,7 @@ export class OpenFile {
     this.working.clear()
     this.broadcast(this.snapshot())
     this.broadcastWorking()
+    this.broadcastSteps()
     void importAssets(text, path.dirname(file)).catch(() => {})
     const root = this.doc.project?.root
 
@@ -133,7 +149,12 @@ export class OpenFile {
   }
 
   /** Apply ops as one undoable transaction and broadcast them. */
-  transact(ops: Op[], origin: Origin, label?: string): number {
+  transact(
+    ops: Op[],
+    origin: Origin,
+    label?: string,
+    meta: { why?: string; reverts?: number } = {},
+  ): number {
     if (this.ref)
       throw new Error(
         `Read-only: this is ${this.ref.branch} as committed. Switch to a checkout to edit.`,
@@ -143,10 +164,30 @@ export class OpenFile {
     const { doc, inverse } = applyOps(this.doc, ops)
     this.doc = { ...doc, updatedAt: new Date().toISOString() }
     this.version += 1
-    this.undoStack.push({ ops, inverse, origin, label })
+    const top = this.undoStack.at(-1)
+    const why = meta.why?.trim().slice(0, 80) || undefined
+
+    const step =
+      origin !== 'agent'
+        ? undefined
+        : top?.origin === 'agent' && top.why === why
+          ? top.step
+          : ++this.stepSeq
+
+    this.undoStack.push({
+      ops,
+      inverse,
+      origin,
+      label,
+      why,
+      reverts: meta.reverts,
+      step,
+      at: new Date().toISOString(),
+    })
 
     if (this.undoStack.length > UNDO_LIMIT) this.undoStack.shift()
     this.redoStack = []
+    this.broadcastSteps()
 
     if (origin === 'agent') {
       this.markWorking(ops)
@@ -180,8 +221,9 @@ export class OpenFile {
     const { doc, inverse } = applyOps(this.doc, tx.inverse)
     this.doc = doc
     this.version += 1
-    this.redoStack.push({ ops: tx.inverse, inverse, origin: tx.origin, label: tx.label })
+    this.redoStack.push({ ...tx, ops: tx.inverse, inverse })
     this.broadcast({ t: 'ops', ops: tx.inverse, version: this.version, origin: 'user' })
+    this.broadcastSteps()
     this.scheduleSave()
   }
 
@@ -192,9 +234,64 @@ export class OpenFile {
     const { doc, inverse } = applyOps(this.doc, tx.inverse)
     this.doc = doc
     this.version += 1
-    this.undoStack.push({ ops: tx.inverse, inverse, origin: tx.origin, label: tx.label })
+    this.undoStack.push({ ...tx, ops: tx.inverse, inverse })
     this.broadcast({ t: 'ops', ops: tx.inverse, version: this.version, origin: 'user' })
+    this.broadcastSteps()
     this.scheduleSave()
+  }
+
+  steps(): AgentStep[] {
+    const reverted = new Set(this.undoStack.flatMap((t) => t.reverts ?? []))
+    const steps = new Map<number, AgentStep>()
+
+    for (const t of this.undoStack) {
+      if (t.step === undefined) continue
+      const s = steps.get(t.step)
+
+      if (!s)
+        steps.set(t.step, {
+          id: t.step,
+          why: t.why ?? null,
+          tools: t.label ? [t.label] : [],
+          at: t.at,
+          reverted: reverted.has(t.step),
+        })
+      else {
+        s.at = t.at
+
+        if (t.label && !s.tools.includes(t.label)) s.tools.push(t.label)
+      }
+    }
+
+    return [...steps.values()].toReversed()
+  }
+
+  revertStep(step: number) {
+    const txs = this.undoStack.filter((t) => t.step === step)
+
+    if (!txs.length || this.undoStack.some((t) => t.reverts === step)) return
+
+    try {
+      this.transact(
+        txs.toReversed().flatMap((t) => t.inverse),
+        'user',
+        'revert agent step',
+        { reverts: step },
+      )
+    } catch (e) {
+      throw this.ref
+        ? e
+        : new Error('Couldn’t revert this step: later edits changed the same layers.')
+    }
+  }
+
+  private broadcastSteps() {
+    const steps = this.steps()
+    const sent = JSON.stringify(steps)
+
+    if (sent === this.sentSteps) return
+    this.sentSteps = sent
+    this.broadcast({ t: 'steps', steps })
   }
 
   private markWorking(ops: Op[]) {

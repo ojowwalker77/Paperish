@@ -24,6 +24,7 @@ import { Navigator } from './Navigator'
 import { Palette } from './Palette'
 import { Home } from './Home'
 import { LintCard, SettingsDialog } from './DesignChecks'
+import { StepsCard } from './AgentSteps'
 import { PickBar } from './Pick'
 import { CommentsPanel } from './Comments'
 import { ChangesView } from './Repo'
@@ -54,6 +55,7 @@ export function Editor() {
         <Navigator />
         <Inspector />
         <LintCard />
+        <StepsCard />
         <PickBar />
         <VersionDock />
         <CommentsPanel />
@@ -167,6 +169,8 @@ function useShortcuts() {
           if (store.inspectOpen) return store.setInspectOpen(false)
 
           if (store.lintOpen) return store.setLintOpen(false)
+
+          if (store.stepsOpen) return store.setStepsOpen(false)
 
           if (store.commentDraft) return store.startComment(null)
 

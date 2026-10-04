@@ -19,6 +19,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Export | `export` (png, jpg, webp, pdf, svg via foreignObject) `export_combined_pdf` |
 
 Extras beyond Paper:
+- Edit tools take an optional `why`, a few words shown in the user's agent step timeline; calls in a row with the same `why` form one step they can revert.
 - `write_html` returns the created subtree with real sizes, and flags zero-size nodes and artboard overflow.
 - Grid and other CSS render as-is, because it's a real browser.
 

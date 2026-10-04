@@ -6,6 +6,7 @@ import { Icon } from './icons'
 import { resolveToken } from './Inspector'
 import { CommentsStatus } from './Comments'
 import { DesignStatus } from './DesignChecks'
+import { StepsStatus } from './AgentSteps'
 import { TaskPill } from './ImportDialog'
 import { useWorldRects } from './measure'
 import { BranchPicker } from './Repo'
@@ -22,6 +23,7 @@ export function StatusBar() {
         <BranchPicker />
         <DesignStatus />
         <AgentActivity />
+        <StepsStatus />
         <TaskPill />
         <Problems />
       </div>

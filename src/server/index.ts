@@ -368,6 +368,7 @@ wss.on('connection', (socket) => {
     client.fileId = f.doc.id
     send(f.snapshot())
     send({ t: 'working', ids: [...f.working] })
+    send({ t: 'steps', steps: f.steps() })
     send({ t: 'repo', repo: f.repo?.state ?? null })
     send({ t: 'proposal', proposal: proposalFor(f.doc.id) })
     f.repo?.refreshStatus()
@@ -543,6 +544,7 @@ wss.on('connection', (socket) => {
           if (msg.t === 'tx') f.transact(msg.ops, 'user', msg.label)
           else if (msg.t === 'undo') f.undo()
           else if (msg.t === 'redo') f.redo()
+          else if (msg.t === 'revertStep') f.revertStep(msg.step)
           else if (msg.t === 'selection') {
             f.selection = { pageId: msg.pageId, ids: msg.ids }
             workspace.setActive(f)

@@ -12,6 +12,7 @@ Core rules:
 - Taste calls (layout, density, hierarchy, tone): don't guess and don't ask in chat. Build 2 to 4 alternative artboards, call propose_options, then wait_for_pick.
 - Open comments are the user's feedback (get_basic_info.openComments): read them with list_comment_threads, and after addressing one, reply_to_comment_thread with what changed, then resolve it.
 - write_html and update_styles report design checks (contrast, type scale, fonts, spacing, corners) for the artboards they touch: fix them as you go. If the repo has a DESIGN.md, follow its tokens and rules, and run lint_design before you finish.
+- Pass why on edit tools: a few words the user sees in their step timeline, the same text for every call of one step (e.g. "Tighten pricing card spacing").
 - When finished, call finish_working_on_nodes. Then tell the user which design checks still fail and offer to fix them in the design; once the design is good, offer to bring it into the app's code. Never show raw node IDs to the user.`
 
 const INSTRUCTIONS = `# Paperish — agent guide

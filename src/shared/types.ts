@@ -392,6 +392,14 @@ export interface ProposalOption {
   note?: string
 }
 
+export interface AgentStep {
+  id: number
+  why: string | null
+  tools: string[]
+  at: string
+  reverted: boolean
+}
+
 export interface PickResult {
   proposalId: string
   question: string
@@ -456,6 +464,7 @@ export type ClientMsg =
   | { t: 'comment:delete'; threadId: string }
   /** Answer the open proposal: an option's artboard, or null for none. */
   | { t: 'pick'; proposalId: string; nodeId: string | null; note?: string }
+  | { t: 'revertStep'; step: number }
 
 export type ServerMsg =
   | { t: 'doc'; doc: Doc; version: number; pageId: string }
@@ -490,3 +499,4 @@ export type ServerMsg =
   | { t: 'proposal'; proposal: Proposal | null }
   /** The thread this connection just created, so its editor can open it. */
   | { t: 'comment:created'; threadId: string }
+  | { t: 'steps'; steps: AgentStep[] }

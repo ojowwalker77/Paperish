@@ -64,6 +64,13 @@ const cwdArg = z
     "Your working directory (absolute). In a git worktree, pass it so this acts on that worktree's design/ folder.",
   )
 
+const whyArg = z
+  .string()
+  .optional()
+  .describe(
+    "A few words on why, shown in the user's agent step timeline. Pass the same text on every call of one step.",
+  )
+
 const styleRecord = z.record(z.string(), z.union([z.string(), z.number()]))
 
 const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
@@ -436,11 +443,15 @@ export function createMcpServer(ws: Workspace, projectId: string): McpServer {
   tool(
     'create_page',
     'Create a new page in a file and return its id. Does not switch to it — call open_file with pageId for that.',
-    { name: z.string().optional().describe('Page name (default "Page N").'), fileId: fileIdArg },
-    ({ name, fileId }) => {
+    {
+      name: z.string().optional().describe('Page name (default "Page N").'),
+      fileId: fileIdArg,
+      why: whyArg,
+    },
+    ({ name, fileId, why }) => {
       const f = resolve(fileId)
       const { page, root } = newPage(f, name?.trim() || `Page ${f.doc.pages.length + 1}`)
-      f.transact([{ t: 'page:add', page, root }], 'agent', 'create_page')
+      f.transact([{ t: 'page:add', page, root }], 'agent', 'create_page', { why })
 
       return json({ pageId: page.id, name: page.name, rootNodeId: root.id })
     },
@@ -1154,8 +1165,9 @@ export function createMcpServer(ws: Workspace, projectId: string): McpServer {
         )
         .min(1),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    async ({ updates, fileId }) => {
+    async ({ updates, fileId, why }) => {
       const f = resolve(fileId)
       const ops: Op[] = []
 
@@ -1180,7 +1192,7 @@ export function createMcpServer(ws: Workspace, projectId: string): McpServer {
         ops.push({ t: 'patch', id: n.id, patch })
       }
 
-      f.transact(ops, 'agent', 'set_component_props')
+      f.transact(ops, 'agent', 'set_component_props', { why })
 
       const notes = await componentWarnings(
         f,
@@ -1556,8 +1568,9 @@ HTML/CSS rules:
         .enum(['insert-children', 'replace'])
         .describe('Append as children, or replace the target node.'),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    async ({ html, targetNodeId, mode, fileId }) => {
+    async ({ html, targetNodeId, mode, fileId, why }) => {
       const f = resolve(fileId)
       const target = f.node(targetNodeId)
 
@@ -1621,7 +1634,7 @@ HTML/CSS rules:
       subtrees.forEach((sub, i) =>
         ops.push({ t: 'insert', parentId: parent.id, index: index + i, nodes: sub }),
       )
-      f.transact(ops, 'agent', 'write_html')
+      f.transact(ops, 'agent', 'write_html', { why })
 
       if (parent.type === 'Root') f.broadcast({ t: 'reveal', ids: subtrees.map((s) => s[0].id) })
 
@@ -1680,8 +1693,9 @@ HTML/CSS rules:
           'camelCase CSS, e.g. {"width":"1440px","height":"900px","backgroundColor":"#FAFAF7"}.',
         ),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    async ({ name, styles, fileId }) => {
+    async ({ name, styles, fileId, why }) => {
       const f = resolve(fileId)
 
       const s: Styles = {
@@ -1714,6 +1728,7 @@ HTML/CSS rules:
         [{ t: 'insert', parentId: root.id, index: root.children.length, nodes: [node] }],
         'agent',
         'create_artboard',
+        { why },
       )
       f.broadcast({ t: 'reveal', ids: [node.id] })
       const r = (await engine.layout(f, [node.id]))[node.id]
@@ -1732,8 +1747,12 @@ HTML/CSS rules:
   tool(
     'delete_nodes',
     'Delete nodes and all their descendants. Check a node with get_node_info first if unsure about its parent.',
-    { nodeIds: z.array(z.string()).describe('Node ids to delete.'), fileId: fileIdArg },
-    ({ nodeIds, fileId }) => {
+    {
+      nodeIds: z.array(z.string()).describe('Node ids to delete.'),
+      fileId: fileIdArg,
+      why: whyArg,
+    },
+    ({ nodeIds, fileId, why }) => {
       const f = resolve(fileId)
 
       const ids = nodeIds
@@ -1741,7 +1760,7 @@ HTML/CSS rules:
         .filter((n) => n.type !== 'Root')
         .map((n) => n.id)
 
-      f.transact([{ t: 'delete', ids }], 'agent', 'delete_nodes')
+      f.transact([{ t: 'delete', ids }], 'agent', 'delete_nodes', { why })
 
       return json({ deleted: ids })
     },
@@ -1755,8 +1774,9 @@ HTML/CSS rules:
         .array(z.object({ nodeId: z.string(), textContent: z.string() }))
         .describe('Text updates.'),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    ({ updates, fileId }) => {
+    ({ updates, fileId, why }) => {
       const f = resolve(fileId)
       const ops: Op[] = []
       const errors: string[] = []
@@ -1769,7 +1789,7 @@ HTML/CSS rules:
         else ops.push({ t: 'patch', id: n.id, patch: { text: u.textContent } })
       }
 
-      f.transact(ops, 'agent', 'set_text_content')
+      f.transact(ops, 'agent', 'set_text_content', { why })
 
       return json({ updated: ops.length, errors: errors.length ? errors : undefined })
     },
@@ -1781,8 +1801,9 @@ HTML/CSS rules:
     {
       updates: z.array(z.object({ nodeId: z.string(), name: z.string() })).describe('Renames.'),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    ({ updates, fileId }) => {
+    ({ updates, fileId, why }) => {
       const f = resolve(fileId)
 
       const ops: Op[] = updates.map((u) => ({
@@ -1791,7 +1812,7 @@ HTML/CSS rules:
         patch: { name: u.name.slice(0, 50) },
       }))
 
-      f.transact(ops, 'agent', 'rename_nodes')
+      f.transact(ops, 'agent', 'rename_nodes', { why })
 
       return json({ renamed: ops.length })
     },
@@ -1805,8 +1826,9 @@ HTML/CSS rules:
         .array(z.object({ nodeIds: z.array(z.string()), styles: styleRecord }))
         .describe('Each entry applies styles to all listed nodes.'),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    async ({ updates, fileId }) => {
+    async ({ updates, fileId, why }) => {
       const f = resolve(fileId)
       const ops: Op[] = []
       const ignored: Record<string, string[]> = {}
@@ -1833,7 +1855,7 @@ HTML/CSS rules:
         }
       }
 
-      f.transact(ops, 'agent', 'update_styles')
+      f.transact(ops, 'agent', 'update_styles', { why })
 
       const abs = [
         ...new Set(
@@ -1866,8 +1888,9 @@ HTML/CSS rules:
         .array(z.object({ id: z.string(), parentId: z.string().optional() }))
         .describe('Nodes to duplicate.'),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    async ({ nodes, fileId }) => {
+    async ({ nodes, fileId, why }) => {
       const f = resolve(fileId)
       const ops: Op[] = []
 
@@ -1911,7 +1934,7 @@ HTML/CSS rules:
         results.push({ sourceId: src.id, newId, descendantIdMap })
       }
 
-      f.transact(ops, 'agent', 'duplicate_nodes')
+      f.transact(ops, 'agent', 'duplicate_nodes', { why })
 
       const topLevel = results.flatMap((r) =>
         f.doc.nodes[f.doc.nodes[r.newId]?.parent ?? '']?.type === 'Root' ? [r.newId] : [],
@@ -1942,8 +1965,9 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
         )
         .min(1),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    async ({ moves, fileId }) => {
+    async ({ moves, fileId, why }) => {
       const f = resolve(fileId)
       let doc: Doc = { ...f.doc, nodes: { ...f.doc.nodes } }
       const ops: Op[] = []
@@ -2016,7 +2040,7 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
         })
       }
 
-      f.transact(ops, 'agent', 'move_nodes')
+      f.transact(ops, 'agent', 'move_nodes', { why })
 
       return json({
         moves: results,
@@ -2244,12 +2268,13 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
         )
         .min(1),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    ({ tokens, fileId }) => {
+    ({ tokens, fileId, why }) => {
       const f = resolve(fileId)
       // SAFETY: token inputs match the Token shape after the zod type/name/value validation above.
       const next = [...f.doc.tokens, ...tokens.map((t) => ({ ...t }) as Token)]
-      f.transact([{ t: 'tokens', tokens: next }], 'agent', 'create_tokens')
+      f.transact([{ t: 'tokens', tokens: next }], 'agent', 'create_tokens', { why })
 
       return json(tokens.map((t) => ({ name: t.name, result: 'created' })))
     },
@@ -2274,8 +2299,9 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
         )
         .min(1),
       fileId: fileIdArg,
+      why: whyArg,
     },
-    ({ tokens, fileId }) => {
+    ({ tokens, fileId, why }) => {
       const f = resolve(fileId)
       let list = f.doc.tokens.slice()
       const ops: Op[] = []
@@ -2328,7 +2354,7 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
       })
 
       ops.push({ t: 'tokens', tokens: list })
-      f.transact(ops, 'agent', 'set_tokens')
+      f.transact(ops, 'agent', 'set_tokens', { why })
 
       return json(results)
     },
