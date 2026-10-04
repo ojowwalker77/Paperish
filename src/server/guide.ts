@@ -98,6 +98,7 @@ Every file is a .paperish file in the project's design/ folder (get_basic_info.f
 - Before a big change, check what's uncommitted with compare_revision (default: against HEAD).
 - To review your own work, compare_revision against HEAD, or visual_diff with reference.revision for one node.
 - For a PR description, compare_revision against the base branch ("main") and list the artboards that changed.
+- When get_basic_info shows designDiffs "not set up", the repo is on GitHub without Paperish's design-diff workflow. Offer it once, in one sentence: every pull request that changes a design gets a comment with before | after | heatmap images. If the user agrees, call setup_design_diffs and remind them to commit the file.
 - list_files shows the project's files; open_file also takes the path of a .paperish file.
 
 Git worktrees: each checkout of the repo (the main one and every worktree) has its own design/ folder, so your edits land in the checkout you're working in. If you work in a worktree, start with open_file on the .paperish path under your working directory (or list_files / create_file with cwd), then pass that fileId on every call. Calls without a fileId go to the checkout your MCP client reports; when there are several checkouts and it reports none, they fail and ask for a fileId or cwd.

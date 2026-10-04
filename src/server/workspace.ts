@@ -19,6 +19,7 @@ import { applyLinked } from './instances'
 import { ensureProject, projectState } from './project'
 import { DESIGN_DIR, designDir, fileIdFor, Projects, type Project } from './projects'
 import { EXT, importAssets, parseRepoFile, RepoSync, slugify } from './repo'
+import { offersDesignDiffs } from './workflow'
 
 export type Origin = 'user' | 'agent' | 'system'
 
@@ -441,6 +442,7 @@ export class Workspace {
         view: { kind: 'branch', branch: f.ref.branch },
         checkouts,
         branches: others,
+        designDiffs: false,
       }
     }
 
@@ -457,6 +459,7 @@ export class Workspace {
       view: { kind: 'checkout', path: here.path, branch: here.branch, main: here.main },
       checkouts,
       branches: others,
+      designDiffs: await offersDesignDiffs(this.projects, p, here.path),
     }
   }
 

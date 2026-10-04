@@ -272,3 +272,11 @@ export async function changedFiles(
 
   return changes
 }
+
+export async function hasGitHubRemote(dir: string): Promise<boolean> {
+  try {
+    return /github\.com[:/]/.test(await text(dir, ['remote', '-v']))
+  } catch {
+    return false
+  }
+}

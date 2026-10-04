@@ -47,6 +47,7 @@ import { urlJob } from './importer'
 import { figmaJob } from './import/figma'
 import { paperJob } from './import/paper'
 import { runImport } from './tasks'
+import { writeWorkflow } from './workflow'
 import { newPage, Workspace, type Client, type OpenFile } from './workspace'
 
 const workspace = new Workspace()
@@ -623,7 +624,11 @@ wss.on('connection', (socket) => {
           } else if (msg.t === 'pick') pick(f, msg.proposalId, msg.nodeId, msg.note)
           else if (msg.t === 'knob') turnKnob(f, msg.knobsId, msg.name, msg.value)
           else if (msg.t === 'knobsDone') closeKnobs(f, msg.knobsId)
-          else if (msg.t === 'comment:create')
+          else if (msg.t === 'designDiffs') {
+            if (!msg.setup) workspace.projects.dismissDesignDiffs(workspace.project(f.projectId))
+            else if (f.checkout) writeWorkflow(f.checkout)
+            workspace.filesChanged(f.projectId)
+          } else if (msg.t === 'comment:create')
             personFor(f)
               .then((me) => {
                 const t = createThread(f, me, msg, msg.text, 'user')

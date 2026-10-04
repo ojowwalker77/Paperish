@@ -70,6 +70,7 @@ class Store {
   branches: string[] = []
   /** An agent is working in another checkout than the one shown. */
   agentElsewhere: { checkout: string; branch: string | null } | null = null
+  designDiffs = false
   /** All projects, for the home screen (shown while no file is open). */
   projects: ProjectInfo[] = []
   home = false
@@ -363,6 +364,7 @@ class Store {
         this.view = msg.view
         this.checkouts = msg.checkouts
         this.branches = msg.branches
+        this.designDiffs = msg.designDiffs
 
         if (msg.view.kind === 'checkout' && this.agentElsewhere?.checkout === msg.view.path)
           this.agentElsewhere = null
@@ -387,6 +389,7 @@ class Store {
         this.checkouts = []
         this.branches = []
         this.agentElsewhere = null
+        this.designDiffs = false
         this.files = []
         this.preview = null
         this.changesOpen = false

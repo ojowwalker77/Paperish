@@ -24,6 +24,7 @@ export function StatusBar() {
         <DesignStatus />
         <AgentActivity />
         <StepsStatus />
+        <DesignDiffsOffer />
         <TaskPill />
         <Problems />
       </div>
@@ -65,6 +66,43 @@ function AgentActivity() {
         </button>
       )}
     </>
+  )
+}
+
+function DesignDiffsOffer() {
+  const offer = useStore((s) => s.designDiffs)
+  const [added, setAdded] = useState(false)
+
+  if (added)
+    return (
+      <span className="pw-status-item pw-status-offer">
+        <span>
+          Added <code>.github/workflows/paperish-design-diff.yml</code>. Commit it to turn it on.
+        </span>
+        <button title="Dismiss" onClick={() => setAdded(false)}>
+          <Icon.Close size={12} />
+        </button>
+      </span>
+    )
+
+  if (!offer) return null
+
+  return (
+    <span className="pw-status-item pw-status-offer">
+      Want design diffs on your pull requests?
+      <button
+        className="pw-status-link"
+        onClick={() => {
+          store.send({ t: 'designDiffs', setup: true })
+          setAdded(true)
+        }}
+      >
+        Set up GitHub Action
+      </button>
+      <button title="Dismiss" onClick={() => store.send({ t: 'designDiffs', setup: false })}>
+        <Icon.Close size={12} />
+      </button>
+    </span>
   )
 }
 
