@@ -42,6 +42,7 @@ import {
 import { pick, proposalFor } from './proposals'
 import { closeKnobs, knobsFor, turnKnob } from './knobs'
 import { settingsState, updateSettings } from './settings'
+import { urlJob } from './importer'
 import { runImport } from './tasks'
 import { newPage, Workspace, type Client, type OpenFile } from './workspace'
 
@@ -571,9 +572,10 @@ wss.on('connection', (socket) => {
               },
             )
           else if (msg.t === 'importUrl')
-            runImport(f, { url: msg.url, width: msg.width }, 'user', msg.token).catch((e) =>
-              // SAFETY: runImport rejects with Error for failed imports.
-              console.warn('[paperish] import failed:', (e as Error).message),
+            runImport(f, urlJob(f, { url: msg.url, width: msg.width }), 'user', msg.token).catch(
+              (e) =>
+                // SAFETY: runImport rejects with Error for failed imports.
+                console.warn('[paperish] import failed:', (e as Error).message),
             )
           else if (msg.t === 'lint') sendLint(f)
           else if (msg.t === 'pickDesignMd') {

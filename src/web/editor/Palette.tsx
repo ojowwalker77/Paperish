@@ -140,7 +140,7 @@ function useItems(): Item[] {
     }
 
     act('Preview', openPreview, 'P')
-    act('Import a web page…', () => store.setImportOpen(true), undefined, <Icon.Globe size={12} />)
+    act('Import a web page…', () => store.setImport('url'), undefined, <Icon.Globe size={12} />)
 
     if (inGit)
       act('Show changes', () => store.setChangesOpen(true), undefined, <Icon.Branch size={12} />)

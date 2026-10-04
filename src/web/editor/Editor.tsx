@@ -97,7 +97,7 @@ function useShortcuts() {
         isTyping(e) ||
         store.palette ||
         store.preview ||
-        store.importOpen ||
+        store.importSource ||
         store.changesOpen ||
         store.settingsOpen ||
         store.home

@@ -28,10 +28,10 @@ import { EXPORTS_DIR, ORIGIN } from './config'
 import { engine, type Rect } from './engine'
 import { css2Spec, describeGoogle, googleFonts } from './fonts'
 import { GUIDES, SERVER_INSTRUCTIONS } from './guide'
-import { cloneSubtree, parseHtml } from './html'
-import { classTokens, tailwindColorNames, tailwindResolver } from './tailwind'
+import { cloneSubtree } from './html'
+import { tailwindColorNames } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
-import { forkVersion, linkProject } from './commands'
+import { forkVersion, htmlToNodes, linkProject } from './commands'
 import { compareFiles, openRevision } from './history'
 import { checkBoards, lintFile } from './lint'
 import { agentNamed, createThread, reply, setStatus } from './comments'
@@ -45,6 +45,7 @@ import {
   knobValues,
   waitForKnobs,
 } from './knobs'
+import { urlJob } from './importer'
 import { runImport } from './tasks'
 import { findSampleData } from './samples'
 import { toJSX, toStaticHTML } from './serialize'
@@ -1261,7 +1262,7 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
     },
     async ({ url, width, name, fileId }) => {
       const f = resolve(fileId)
-      const { rootId, result } = await runImport(f, { url, width, name }, 'agent')
+      const { rootId, result } = await runImport(f, urlJob(f, { url, width, name }), 'agent')
       const ids = subtreeIds(f.doc.nodes, rootId).filter((id) => f.doc.nodes[id].type !== 'Root')
       const rects = await layout(f, ids.slice(0, 400))
       const s = result.stats
@@ -1619,26 +1620,13 @@ HTML/CSS rules:
       if (!canHaveChildren(parent))
         return fail(`"${parent.name}" is a ${parent.type} node and cannot have children.`)
 
-      const tokens = classTokens(html)
-
-      const tailwind = tokens.length
-        ? await tailwindResolver(tokens, tailwindEntryFor(f.doc))
-        : undefined
-
       const ab = parent.type === 'Root' ? undefined : artboardOf(f.doc.nodes, parent.id)
 
       const width = ab
         ? ((await engine.layout(f, [ab.id]))[ab.id]?.width ?? num(ab.styles.width))
         : num(target.styles.width) || 1440
 
-      const { subtrees, warnings } = parseHtml(html, {
-        mint: () => f.mint(),
-        cloneSource: (id) =>
-          f.doc.nodes[id] ? subtreeIds(f.doc.nodes, id).map((i) => f.doc.nodes[i]) : null,
-        tailwind,
-        width,
-        components: componentsFor(f.doc),
-      })
+      const { subtrees, warnings } = await htmlToNodes(f, html, width)
 
       if (!subtrees.length)
         return fail(

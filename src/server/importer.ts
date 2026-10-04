@@ -2,12 +2,13 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { canvasResetCss } from '../shared/reset'
 import { RENDER_TAGS } from '../shared/tags'
-import type { FontFaceDef, PNode, Styles, StyleValue } from '../shared/types'
+import type { FontFaceDef, PNode, Styles, StyleValue, Token } from '../shared/types'
 import { extFor, importAssetUrl, storeBuffer } from './assets'
 import { ROOT_DIR } from './config'
 import { wait, type Page } from './browser'
 import { engine } from './engine'
 import { sanitizeSvgMarkup } from './html'
+import { hostOf, type ImportJob } from './tasks'
 import type { OpenFile } from './workspace'
 
 // URL import: load a live page in a hidden window, walk its rendered DOM
@@ -65,14 +66,22 @@ interface Extracted {
 export interface ImportResult {
   nodes: PNode[]
   fontFaces: FontFaceDef[]
+  tokens?: Token[]
   title: string
   stats: { layers: number; images: number; imagesFailed: number; fonts: number; ms: number }
   warnings: string[]
 }
 
-type Progress = (label: string, pct: number) => void
+export type Progress = (label: string, pct: number) => void
 
-export async function importUrl(
+export function urlJob(
+  f: OpenFile,
+  opts: { url: string; width?: number; name?: string },
+): ImportJob {
+  return { label: hostOf(opts.url), run: (onProgress) => importUrl(f, { ...opts, onProgress }) }
+}
+
+async function importUrl(
   f: OpenFile,
   opts: { url: string; width?: number; name?: string; onProgress?: Progress },
 ): Promise<ImportResult> {

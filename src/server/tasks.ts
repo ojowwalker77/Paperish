@@ -1,21 +1,26 @@
 import { randomBytes } from 'node:crypto'
 import { mergeFontFaces } from '../shared/fontfaces'
 import type { Op, TaskState } from '../shared/types'
-import { importUrl, type ImportResult } from './importer'
+import type { ImportResult, Progress } from './importer'
 import { findPlacement } from './placement'
 import type { OpenFile, Origin } from './workspace'
 
-// Long-running work (URL import) reported to editors as progress tasks.
+// Long-running work (imports) reported to editors as progress tasks.
+
+export interface ImportJob {
+  label: string
+  run: (progress: Progress) => Promise<ImportResult>
+}
 
 export async function runImport(
   f: OpenFile,
-  opts: { url: string; width?: number; name?: string },
+  job: ImportJob,
   origin: Origin,
   token?: string,
 ): Promise<{ rootId: string; result: ImportResult }> {
   const task: TaskState = {
     id: randomBytes(4).toString('hex'),
-    label: `Importing ${hostOf(opts.url)}`,
+    label: `Importing ${job.label}`,
     pct: 0,
     status: 'running',
     origin: token,
@@ -25,13 +30,10 @@ export async function runImport(
   push()
 
   try {
-    const result = await importUrl(f, {
-      ...opts,
-      onProgress: (label, pct) => {
-        task.label = `${label} · ${hostOf(opts.url)}`
-        task.pct = pct
-        push()
-      },
+    const result = await job.run((label, pct) => {
+      task.label = `${label} · ${job.label}`
+      task.pct = pct
+      push()
     })
 
     const place = await findPlacement(f)
@@ -46,27 +48,37 @@ export async function runImport(
 
     if (result.fontFaces.length)
       ops.push({ t: 'fontFaces', fontFaces: mergeFontFaces(f.doc.fontFaces, result.fontFaces) })
-    f.transact(ops, origin, 'import url')
+
+    const names = new Set(f.doc.tokens.map((t) => t.name))
+    const tokens = (result.tokens ?? []).filter((t) => !names.has(t.name))
+
+    if (tokens.length) ops.push({ t: 'tokens', tokens: [...f.doc.tokens, ...tokens] })
+    f.transact(ops, origin, 'import')
     f.broadcast({ t: 'reveal', ids: [top.id] })
     Object.assign(task, {
       status: 'done',
       pct: 100,
-      label: `Imported ${hostOf(opts.url)}`,
+      label: `Imported ${job.label}`,
       ids: [top.id],
-      message: `${result.stats.layers} layers · ${result.stats.images} images · ${result.stats.fonts} fonts`,
+      message: [
+        `${result.stats.layers} layers`,
+        `${result.stats.images} images`,
+        `${result.stats.fonts} fonts`,
+        ...(tokens.length ? [`${tokens.length} tokens`] : []),
+      ].join(' · '),
     })
     push()
 
     return { rootId: top.id, result }
   } catch (e) {
-    // SAFETY: importUrl, findPlacement and transact reject with Error instances.
+    // SAFETY: import producers, findPlacement and transact reject with Error instances.
     Object.assign(task, { status: 'error', message: (e as Error).message.split('\n')[0] })
     push()
     throw e
   }
 }
 
-function hostOf(url: string): string {
+export function hostOf(url: string): string {
   try {
     return new URL(/^https?:/.test(url) ? url : `https://${url}`).hostname
   } catch {
