@@ -15,6 +15,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Write | `create_artboard` `write_html` `set_text_content` `update_styles` `rename_nodes` `duplicate_nodes` `move_nodes` `delete_nodes` `finish_working_on_nodes` |
 | Tokens | `get_tokens` `create_tokens` `set_tokens` |
 | Pick | `propose_options` `wait_for_pick` |
+| Knobs | `expose_knobs` `read_knobs` `commit_knobs` |
 | Comments | `list_comment_threads` `get_comment_thread` `list_comment_thread_authors` `set_comment_thread_status` `reply_to_comment_thread` `create_comment_thread` |
 | Export | `export` (png, jpg, webp, pdf, svg via foreignObject) `export_combined_pdf` |
 
@@ -94,3 +95,7 @@ Agents can iterate against the number: fix the layers named in the first regions
 ## Picking between options
 
 Agents don't guess on taste. For a call that's yours to make (layout, density, emphasis, tone), the agent builds 2 to 4 alternatives as artboards and calls `propose_options` with a question. Paperish frames them, labels them A to D, and shows the question in a bar at the bottom: press a letter (or click), optionally with a note, or answer None. `wait_for_pick` returns your answer to the agent; the picked artboard takes the first option's place and the others are removed, in one undo step. The agent guide tells agents to propose this way, and to record choices that settle the design system in DESIGN.md.
+
+## Knobs
+
+Some calls are a dial, not a choice: how dense, how round, which hue. The agent writes the artboard's styles against CSS variables (`var(--radius)`, `calc(var(--density) * 8px)`) and calls `expose_knobs` with 1 to 3 sliders, numbers or colors. Paperish sets the variables on the artboard and shows them in a bar at the bottom; the canvas follows as you scrub, and each release is one undo step. Press Done when it looks right. `read_knobs` returns the current values (and waits for Done if asked); `commit_knobs` closes the bar and either keeps the variables on the artboard or writes their values into the styles that read them.

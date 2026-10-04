@@ -40,6 +40,7 @@ import {
   setStatus,
 } from './comments'
 import { pick, proposalFor } from './proposals'
+import { closeKnobs, knobsFor, turnKnob } from './knobs'
 import { settingsState, updateSettings } from './settings'
 import { runImport } from './tasks'
 import { newPage, Workspace, type Client, type OpenFile } from './workspace'
@@ -371,6 +372,7 @@ wss.on('connection', (socket) => {
     send({ t: 'steps', steps: f.steps() })
     send({ t: 'repo', repo: f.repo?.state ?? null })
     send({ t: 'proposal', proposal: proposalFor(f.doc.id) })
+    send({ t: 'knobs', knobs: knobsFor(f.doc.id) })
     f.repo?.refreshStatus()
     const root = f.doc.project?.root
     const st = projectState(root)
@@ -595,6 +597,8 @@ wss.on('connection', (socket) => {
               })
               .catch((e) => send({ t: 'error', message: (e as Error).message }))
           } else if (msg.t === 'pick') pick(f, msg.proposalId, msg.nodeId, msg.note)
+          else if (msg.t === 'knob') turnKnob(f, msg.knobsId, msg.name, msg.value)
+          else if (msg.t === 'knobsDone') closeKnobs(f, msg.knobsId)
           else if (msg.t === 'comment:create')
             personFor(f)
               .then((me) => {

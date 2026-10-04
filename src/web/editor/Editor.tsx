@@ -26,6 +26,7 @@ import { Home } from './Home'
 import { LintCard, SettingsDialog } from './DesignChecks'
 import { StepsCard } from './AgentSteps'
 import { PickBar } from './Pick'
+import { KnobsBar } from './Knobs'
 import { CommentsPanel } from './Comments'
 import { ChangesView } from './Repo'
 import { StatusBar } from './StatusBar'
@@ -57,6 +58,7 @@ export function Editor() {
         <LintCard />
         <StepsCard />
         <PickBar />
+        <KnobsBar />
         <VersionDock />
         <CommentsPanel />
         <Palette />

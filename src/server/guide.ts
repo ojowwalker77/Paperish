@@ -68,6 +68,7 @@ When a choice is the user's to make (which layout, how dense, what to emphasize,
 2. propose_options({ question, options: [{ nodeId, label, note? }] }): 2 to 4 options, 1 to 3 word labels, a one-line note on each trade-off.
 3. wait_for_pick({ proposalId }): the user presses A to D (or picks none) and may add a note. The other options are removed for you; continue from the picked one. If it settles a design-system choice, write it into DESIGN.md.
 Things with a right answer (bugs, the spec, DESIGN.md rules) aren't proposals: just do them.
+For a continuous call (density, corner radius, accent hue), give the user knobs instead: write the styles against CSS variables (borderRadius: "var(--radius)"), call expose_knobs with 1 to 3 knobs on the artboard, read_knobs({ knobsId, waitSeconds }) until they press Done, then commit_knobs.
 
 ## 7. Review checkpoints (do not skip)
 After each section, screenshot it and check:

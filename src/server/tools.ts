@@ -36,6 +36,15 @@ import { compareFiles, openRevision } from './history'
 import { checkBoards, lintFile } from './lint'
 import { agentNamed, createThread, reply, setStatus } from './comments'
 import { propose, waitForPick } from './proposals'
+import {
+  closeKnobs,
+  exposeKnobs,
+  inlineKnobs,
+  knobsDone,
+  knobSet,
+  knobValues,
+  waitForKnobs,
+} from './knobs'
 import { runImport } from './tasks'
 import { findSampleData } from './samples'
 import { toJSX, toStaticHTML } from './serialize'
@@ -2238,6 +2247,124 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
         note: r.note ?? null,
         removed: r.removed,
         next: `Continue from artboard ${r.picked.nodeId}${r.note ? ', taking the note into account' : ''}. If this settles a design-system choice (a token or a rule), record it in DESIGN.md.`,
+      })
+    },
+  )
+
+  tool(
+    'expose_knobs',
+    'Let the user tune a continuous taste call live instead of guessing a number (density, corner radius, accent hue). Write the artboard\'s styles to read CSS variables (borderRadius: "var(--radius)", padding: "calc(var(--density) * 8px)", color: "hsl(var(--hue) 80% 50%)"), then call this with 1 to 3 knobs. Paperish sets the variables on the artboard and shows a small panel where the user scrubs them while the canvas updates. Then call read_knobs. For discrete alternatives use propose_options.',
+    {
+      nodeId: z
+        .string()
+        .describe('The artboard, or a node in it; the variables are set on the artboard.'),
+      knobs: z
+        .array(
+          z.object({
+            name: z
+              .string()
+              .regex(/^--[\w-]+$/)
+              .describe('The CSS variable your styles read, e.g. "--radius".'),
+            label: z.string().max(24).describe('1 or 2 words, e.g. "Radius".'),
+            type: z.enum(['slider', 'number', 'color']),
+            value: z
+              .union([z.string(), z.number()])
+              .describe('Starting value: a number, or a hex color like #3b82f6 for color knobs.'),
+            min: z.number().optional().describe('Required for sliders.'),
+            max: z.number().optional().describe('Required for sliders.'),
+            step: z.number().positive().optional(),
+            unit: z
+              .string()
+              .max(4)
+              .optional()
+              .describe(
+                'Appended to the number, e.g. "px" or "%". Omit for unitless values like a hue.',
+              ),
+          }),
+        )
+        .min(1)
+        .max(3),
+      fileId: fileIdArg,
+    },
+    ({ nodeId, knobs, fileId }) => {
+      const f = resolve(fileId)
+      const board = artboardOf(f.doc.nodes, f.node(nodeId).id)
+
+      if (!board) throw new Error('Knobs go on an artboard (or a node inside one).')
+
+      if (new Set(knobs.map((k) => k.name)).size !== knobs.length)
+        throw new Error('Each knob needs its own variable.')
+
+      const k = exposeKnobs(
+        f,
+        board.id,
+        knobs.map(({ value, ...knob }) => {
+          if (knob.type === 'color') {
+            if (!/^#[\da-f]{6}$/i.test(String(value)))
+              throw new Error(`${knob.label}: a color knob takes a hex color like #3b82f6.`)
+
+            return { ...knob, unit: undefined, value: String(value) }
+          }
+
+          const n = Number.parseFloat(String(value))
+
+          if (Number.isNaN(n)) throw new Error(`${knob.label}: the value must be a number.`)
+
+          if (knob.type === 'slider' && (knob.min === undefined || knob.max === undefined))
+            throw new Error(`${knob.label}: a slider needs min and max.`)
+
+          return { ...knob, value: `${n}${knob.unit ?? ''}` }
+        }),
+      )
+
+      return json({
+        knobsId: k.id,
+        nodeId: k.nodeId,
+        next: 'The user turns them on the canvas. Call read_knobs with this knobsId (waitSeconds waits until they press Done), then commit_knobs.',
+      })
+    },
+  )
+
+  tool(
+    'read_knobs',
+    'Read the current values of knobs from expose_knobs. With waitSeconds it waits until the user presses Done (status "done") or the time runs out (status "open": call it again, or carry on and check back).',
+    {
+      knobsId: z.string(),
+      waitSeconds: z.number().int().min(5).max(600).optional(),
+    },
+    async ({ knobsId, waitSeconds }) => {
+      if (waitSeconds) await waitForKnobs(knobsId, waitSeconds * 1000)
+      const { fileId, set } = knobSet(knobsId)
+      const finished = knobsDone(knobsId)
+
+      return json({
+        status: finished ? 'done' : 'open',
+        nodeId: set.nodeId,
+        values: knobValues(resolve(fileId), set),
+        next: finished
+          ? 'Call commit_knobs to keep these values.'
+          : 'The user may still be turning them.',
+      })
+    },
+  )
+
+  tool(
+    'commit_knobs',
+    'Keep the values of knobs from expose_knobs and close their panel. By default the values stay on the artboard as CSS variables; with inline, every var() that reads them is replaced by its value and the variables are removed.',
+    { knobsId: z.string(), inline: z.boolean().optional() },
+    ({ knobsId, inline }) => {
+      const { fileId, set } = knobSet(knobsId)
+      const f = resolve(fileId)
+      const values = knobValues(f, set)
+      closeKnobs(f, knobsId)
+
+      if (inline) inlineKnobs(f, set)
+
+      return json({
+        values,
+        next: inline
+          ? 'The values are written into the styles of the view.'
+          : 'The values stay on the artboard as CSS variables. If they settle the design system, make them tokens with create_tokens or set_tokens and record them in DESIGN.md.',
       })
     },
   )
