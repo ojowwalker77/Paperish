@@ -53,6 +53,7 @@ import { paperJob } from './import/paper'
 import { dtcgDocument, tokensFromDtcg, type DtcgEntry } from './import/dtcg'
 import { newTokens, runImport } from './tasks'
 import { findSampleData } from './samples'
+import { hasWorkflow, offersDesignDiffs, WORKFLOW, writeWorkflow } from './workflow'
 import { toJSX, toStaticHTML } from './serialize'
 import { ARTBOARD_GAP, findPlacement } from './placement'
 import { newPage, type OpenFile, type Workspace } from './workspace'
@@ -563,6 +564,10 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
             problem: f.repo.state.problem,
           }
         : null,
+      designDiffs:
+        f.checkout && (await offersDesignDiffs(ws.projects, ws.project(f.projectId), f.checkout))
+          ? 'not set up (setup_design_diffs)'
+          : undefined,
       working: [...f.working],
       notes: ['worldX/worldY are canvas positions; x/y are relative to the parent.'],
     }
@@ -1449,6 +1454,21 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
           })),
         ],
       }
+    },
+  )
+
+  tool(
+    'setup_design_diffs',
+    `Set up design diffs on the repo's pull requests: writes ${WORKFLOW}, a GitHub Actions workflow that renders the artboards a pull request changes and keeps one comment on it with before | after | heatmap images. Offer it when get_basic_info shows designDiffs "not set up", and only call it once the user agrees. The user then commits and pushes the file.`,
+    { cwd: cwdArg },
+    ({ cwd }) => {
+      const checkout = currentCheckout(cwd)
+
+      if (hasWorkflow(checkout)) return text(`${path.join(checkout, WORKFLOW)} already exists.`)
+
+      return text(
+        `Wrote ${writeWorkflow(checkout)}. Once it's committed and pushed, pull requests that change a .paperish file get a comment with before | after | heatmap images per artboard.`,
+      )
     },
   )
 

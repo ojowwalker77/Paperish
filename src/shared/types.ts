@@ -503,6 +503,7 @@ export type ClientMsg =
   | { t: 'revertStep'; step: number }
   | { t: 'knob'; knobsId: string; name: string; value: string }
   | { t: 'knobsDone'; knobsId: string }
+  | { t: 'designDiffs'; setup: boolean }
 
 export type ServerMsg =
   | { t: 'doc'; doc: Doc; version: number; pageId: string }
@@ -517,6 +518,7 @@ export type ServerMsg =
       checkouts: CheckoutInfo[]
       /** Local branches without a checkout, which can be viewed as committed. */
       branches: string[]
+      designDiffs: boolean
     }
   /** An agent is working in another checkout of this project than the one the editor shows. */
   | { t: 'agentElsewhere'; checkout: string; branch: string | null; fileId: string }

@@ -38,6 +38,7 @@ export interface Checkout {
 interface Entry {
   root: string
   openedAt: string
+  designDiffs?: 'dismissed'
 }
 
 /** Stable id for a .paperish file: its path, hashed. */
@@ -192,9 +193,24 @@ export class Projects {
   touch(p: Project) {
     if (p.scratch || this.entries[0]?.root === p.root) return
     this.entries = [
-      { root: p.root, openedAt: new Date().toISOString() },
+      {
+        ...this.entries.find((e) => e.root === p.root),
+        root: p.root,
+        openedAt: new Date().toISOString(),
+      },
       ...this.entries.filter((e) => e.root !== p.root),
     ]
+    this.save()
+  }
+
+  designDiffsDismissed(p: Project) {
+    return this.entries.some((e) => e.root === p.root && e.designDiffs === 'dismissed')
+  }
+
+  dismissDesignDiffs(p: Project) {
+    this.entries = this.entries.map((e) =>
+      e.root === p.root ? { ...e, designDiffs: 'dismissed' } : e,
+    )
     this.save()
   }
 

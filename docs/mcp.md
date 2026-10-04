@@ -7,7 +7,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | Area | Tools |
 | --- | --- |
 | Files | `list_files` `open_file` `create_file` `create_page` |
-| Repo | `compare_revision` |
+| Repo | `compare_revision` `setup_design_diffs` |
 | Codebase | `link_project` `list_components` `set_component_props` `find_sample_data` `search_icons` |
 | Import | `import_url` `import_figma` `import_paper` |
 | Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |

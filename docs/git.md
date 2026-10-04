@@ -34,7 +34,11 @@ It runs on a scratch data folder and its own port, so it works next to a running
 
 ## Design diffs on pull requests
 
-The repo's `action.yml` runs `paperish diff` on every pull request that touches a `.paperish` file and keeps one comment on the PR up to date with it. Add this workflow as `.github/workflows/paperish-design-diff.yml`:
+The repo's `action.yml` runs `paperish diff` on every pull request that touches a `.paperish` file and keeps one comment on the PR up to date with it.
+
+When a project is on GitHub, has designs and has no workflow yet, the status bar asks once: "Want design diffs on your pull requests?" **Set up GitHub Action** writes `.github/workflows/paperish-design-diff.yml` into the checkout, ready to commit. Dismissing it hides it for that project. Agents see `designDiffs: "not set up"` in `get_basic_info` under the same conditions, and can write the file with `setup_design_diffs`.
+
+The workflow it writes:
 
 ```yaml
 name: Paperish design diff
