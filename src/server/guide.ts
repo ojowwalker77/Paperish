@@ -81,7 +81,7 @@ When matching a reference (a live site, a screenshot, or a previous version), us
 
 ## 8. Quality bar
 - Prefer restraint: one accent color, generous whitespace, strong type hierarchy.
-- Real, specific placeholder copy — no lorem ipsum. Invent plausible names, numbers and dates.
+- Real content, never lorem ipsum. Call find_sample_data with what the screen shows ("invoice", "User") and use the repo's fixtures, seeds, mocks and Storybook args; with only types, fill their fields with plausible values. With nothing, invent specific names, numbers and dates.
 - Light mode unless asked otherwise.
 - Small text (≤12px) needs extra contrast and some letter-spacing.
 
