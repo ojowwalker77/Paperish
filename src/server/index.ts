@@ -19,7 +19,7 @@ import { googleFontIndex } from './fonts'
 import { toJSX } from './serialize'
 import { createMcpServer, mcpRequest } from './tools'
 import { call, onMain } from './host'
-import { duplicate, insertHtml } from './commands'
+import { duplicate, forkVersion, insertHtml } from './commands'
 import { compareCommit, fileHistory } from './history'
 import {
   closeProjects,
@@ -558,8 +558,16 @@ wss.on('connection', (socket) => {
                 send({ t: 'error', message: (e as Error).message })
               },
             )
-          else if (msg.t === 'duplicate')
-            send({ t: 'created', ids: duplicate(f, msg.ids, msg.name) })
+          else if (msg.t === 'duplicate') send({ t: 'created', ids: duplicate(f, msg.ids) })
+          else if (msg.t === 'fork')
+            forkVersion(f, msg.id, 'user').then(
+              ({ id }) => send({ t: 'created', ids: [id] }),
+              (e) => {
+                send({ t: 'created', ids: [] })
+                // SAFETY: forkVersion rejects with Error when the node isn't an artboard.
+                send({ t: 'error', message: (e as Error).message })
+              },
+            )
           else if (msg.t === 'importUrl')
             runImport(f, { url: msg.url, width: msg.width }, 'user', msg.token).catch((e) =>
               // SAFETY: runImport rejects with Error for failed imports.

@@ -339,7 +339,7 @@ const SHORTCUTS: [string, string][] = [
   ['⌘\\', 'Project, files, pages and views'],
   ['[  ]', 'Previous, next version'],
   ['⌥↑  ⌥↓', 'Previous, next view'],
-  ['⇧⌘N', 'New version'],
+  ['⇧⌘N', 'Fork version'],
   ['V  F  T  H', 'Move, frame, text, hand'],
   ['Space drag', 'Pan'],
   ['⌘ scroll', 'Zoom'],

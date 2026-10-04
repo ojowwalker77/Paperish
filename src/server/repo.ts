@@ -37,6 +37,7 @@ const NODE_KEYS = [
   'attrs',
   'hidden',
   'locked',
+  'fork',
   'children',
   'styles',
 ] as const

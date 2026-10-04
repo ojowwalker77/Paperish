@@ -133,7 +133,7 @@ function visibleArea() {
 
 const NAV_WIDTH = 270
 
-const DOCK_HEIGHT = 96
+const DOCK_HEIGHT = 120
 
 // ---- tree helpers ------------------------------------------------------------
 

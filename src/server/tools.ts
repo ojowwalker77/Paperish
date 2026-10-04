@@ -31,7 +31,7 @@ import { GUIDES, SERVER_INSTRUCTIONS } from './guide'
 import { cloneSubtree, parseHtml } from './html'
 import { classTokens, tailwindColorNames, tailwindResolver } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
-import { linkProject } from './commands'
+import { forkVersion, linkProject } from './commands'
 import { compareFiles, openRevision } from './history'
 import { checkBoards, lintFile } from './lint'
 import { agentNamed, createThread, reply, setStatus } from './comments'
@@ -501,6 +501,7 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
           worldX: r ? round(r.worldX) : undefined,
           worldY: r ? round(r.worldY) : undefined,
           childCount: n.children.length,
+          fork: n.fork,
         }
       }),
       fonts: [...fonts],
@@ -1971,6 +1972,26 @@ HTML/CSS rules:
       if (topLevel.length) f.broadcast({ t: 'reveal', ids: topLevel })
 
       return json(results)
+    },
+  )
+
+  tool(
+    'fork_version',
+    'Explore a direction without losing the others: copies a view\'s version (an artboard) into a new version, "<view> @vN" with the next free number, that branches off it with a one-line rationale. Fork the same version several times to explore directions in parallel; the user browses them as branches in the versions dock. Returns the new id, its name and a descendantIdMap (source id -> copy id) for immediate edits.',
+    {
+      nodeId: z.string().describe('The artboard (version) to fork from.'),
+      rationale: z
+        .string()
+        .min(1)
+        .describe('One line on what this version explores, e.g. "Denser table for power users".'),
+      fileId: fileIdArg,
+    },
+    async ({ nodeId, rationale, fileId }) => {
+      const f = resolve(fileId)
+      const fork = await forkVersion(f, nodeId, 'agent', rationale.replace(/\s+/g, ' ').trim())
+      f.broadcast({ t: 'reveal', ids: [fork.id] })
+
+      return json(fork)
     },
   )
 

@@ -48,6 +48,7 @@ export interface PNode {
   children: string[]
   hidden?: boolean
   locked?: boolean
+  fork?: { from: string; why?: string }
 }
 
 export interface Page {
@@ -438,8 +439,8 @@ export type ClientMsg =
   | { t: 'createFile'; name?: string }
   | { t: 'deleteFile'; fileId: string }
   | { t: 'insertHtml'; parentId: string; index?: number; html: string; styles?: Styles }
-  /** A name for the copy, e.g. a view's next version. */
-  | { t: 'duplicate'; ids: string[]; name?: string }
+  | { t: 'duplicate'; ids: string[] }
+  | { t: 'fork'; id: string }
   | { t: 'importUrl'; url: string; width?: number; token?: string }
   | { t: 'createPage'; name?: string }
   /** Set the OpenRouter key; empty removes it. */

@@ -1,6 +1,8 @@
-import { canHaveChildren, subtreeIds } from '../shared/ops'
+import { canHaveChildren, pageOf, subtreeIds } from '../shared/ops'
 import type { Op, ProjectState, Styles } from '../shared/types'
+import { nextVersionName, viewsOf } from '../shared/views'
 import { cloneSubtree, parseHtml } from './html'
+import { findPlacement } from './placement'
 import {
   componentsFor,
   ensureProject,
@@ -71,7 +73,7 @@ export async function linkProject(
   return ensureProject(root)
 }
 
-export function duplicate(f: OpenFile, ids: string[], name?: string): string[] {
+export function duplicate(f: OpenFile, ids: string[]): string[] {
   const ops: Op[] = []
   const created: string[] = []
 
@@ -99,8 +101,6 @@ export function duplicate(f: OpenFile, ids: string[], name?: string): string[] {
         copy[0].styles.top = `${(parseFloat(String(src.styles.top ?? 0)) || 0) + 16}px`
     }
 
-    if (name) copy[0] = { ...copy[0], name }
-
     ops.push({
       t: 'insert',
       parentId: parent.id,
@@ -113,4 +113,37 @@ export function duplicate(f: OpenFile, ids: string[], name?: string): string[] {
   f.transact(ops, 'user', 'duplicate')
 
   return created
+}
+
+export async function forkVersion(f: OpenFile, id: string, origin: Origin, why?: string) {
+  const src = f.node(id)
+  const page = pageOf(f.doc, src.id)
+  const view = page && viewsOf(f.doc, page).find((v) => v.versions.includes(src.id))
+
+  if (!page || !view) throw new Error(`"${src.name}" is not an artboard.`)
+  const idMap: Record<string, string> = {}
+
+  const copy = cloneSubtree(
+    subtreeIds(f.doc.nodes, src.id).map((i) => f.doc.nodes[i]),
+    () => f.mint(),
+    idMap,
+  )
+
+  const { left, top } = await findPlacement(f)
+  copy[0] = {
+    ...copy[0],
+    name: nextVersionName(view, f.doc),
+    fork: { from: src.id, why },
+    styles: { ...copy[0].styles, left: `${left}px`, top: `${top}px` },
+  }
+  const root = f.doc.nodes[page.rootId]
+  f.transact(
+    [{ t: 'insert', parentId: root.id, index: root.children.length, nodes: copy }],
+    origin,
+    'fork',
+  )
+
+  const { [src.id]: _, ...descendantIdMap } = idMap
+
+  return { id: copy[0].id, name: copy[0].name, descendantIdMap }
 }
