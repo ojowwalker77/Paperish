@@ -6,7 +6,7 @@ Core rules:
 - Build incrementally: one visual group per write_html call (a header, a row, a card). The user sees each write land.
 - Inline styles only (style="..."), flexbox + padding + gap for layout, layer-name="..." to name layers.
 - Verify with get_screenshot after each meaningful section, and fix what you see.
-- Reuse instead of re-writing: duplicate_nodes + set_text_content/update_styles, or <x-paper-clone node-id="..."/> inside write_html.
+- Reuse instead of re-writing: for anything repeated (cards, rows, nav items), build one, create_component it, then create_instance the rest and override their text with set_text_content. Otherwise duplicate_nodes + set_text_content/update_styles, or <x-paper-clone node-id="..."/> inside write_html.
 - Call get_font_family_info before your first typography decisions.
 - Working in a git worktree? Designs live in each checkout's design/ folder: open_file the .paperish path under your working directory first, and pass its fileId on every call.
 - Taste calls (layout, density, hierarchy, tone): don't guess and don't ask in chat. Build 2 to 4 alternative artboards, call propose_options, then wait_for_pick.
@@ -58,6 +58,7 @@ When the user's codebase is linked (link_project, or already linked — see get_
 ## 5. Editing existing designs
 - set_text_content for copy changes, update_styles for style tweaks (batch several nodes per call).
 - duplicate_nodes returns a descendantIdMap so you can edit the copy immediately.
+- Components: create_component turns a layer into a main component (get_basic_info.mainComponents lists them); create_instance places a linked copy and returns a descendantIdMap. Edit the main to change every instance; what you change on an instance (text, styles) stays as its override. Nodes report main: true or the mainId they follow.
 - move_nodes reorders/reparents while keeping ids.
 - find_nodes locates nodes by text or computed style (e.g. every node using #3B82F6) before bulk edits.
 - Versions: the user browses a page's artboards as views, and artboards named "<view> @v2", "<view> @v3" are versions of "<view>". To rework a screen without losing the old one, or to explore several directions in parallel, fork_version the artboard once per direction with a one-line rationale; each fork branches off the version it came from (artboards' fork in get_basic_info).

@@ -349,6 +349,7 @@ const SHORTCUTS: [string, string][] = [
   ['Enter  Esc', 'Into children, to parent'],
   ['⌘ click', 'Select deepest'],
   ['⌘D  ⌫', 'Duplicate, delete'],
+  ['⌥⌘K', 'Create component'],
   ['⌘C  ⌘V', 'Copy, paste HTML'],
   ['⌘Z  ⇧⌘Z', 'Undo, redo'],
   ['I', 'Inspect selection'],

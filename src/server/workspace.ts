@@ -15,6 +15,7 @@ import type {
 import { engine } from './engine'
 import { call } from './host'
 import { branches, commitDate, listTree, resolveRev, showFile } from './git'
+import { applyLinked } from './instances'
 import { ensureProject, projectState } from './project'
 import { DESIGN_DIR, designDir, fileIdFor, Projects, type Project } from './projects'
 import { EXT, importAssets, parseRepoFile, RepoSync, slugify } from './repo'
@@ -161,8 +162,9 @@ export class OpenFile {
       )
 
     if (!ops.length) return this.version
-    const { doc, inverse } = applyOps(this.doc, ops)
-    this.doc = { ...doc, updatedAt: new Date().toISOString() }
+    const linked = applyLinked(this, ops)
+    ops = linked.ops
+    this.doc = { ...this.doc, updatedAt: new Date().toISOString() }
     this.version += 1
     const top = this.undoStack.at(-1)
     const why = meta.why?.trim().slice(0, 80) || undefined
@@ -176,7 +178,7 @@ export class OpenFile {
 
     this.undoStack.push({
       ops,
-      inverse,
+      inverse: linked.inverse,
       origin,
       label,
       why,

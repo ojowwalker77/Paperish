@@ -38,6 +38,8 @@ const NODE_KEYS = [
   'hidden',
   'locked',
   'fork',
+  'main',
+  'mainId',
   'children',
   'styles',
 ] as const

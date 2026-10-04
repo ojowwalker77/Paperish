@@ -49,6 +49,10 @@ export interface PNode {
   hidden?: boolean
   locked?: boolean
   fork?: { from: string; why?: string }
+  /** A main component: its instances follow it. */
+  main?: boolean
+  /** In an instance: the node of the main component this one follows. */
+  mainId?: string
 }
 
 export interface Page {
@@ -191,6 +195,8 @@ export type PatchKey =
   | 'props'
   | 'content'
   | 'component'
+  | 'main'
+  | 'mainId'
 
 /** null removes the field. */
 export type NodePatch = { [K in PatchKey]?: PNode[K] | null }
@@ -458,7 +464,7 @@ export type ClientMsg =
   | { t: 'createFile'; name?: string }
   | { t: 'deleteFile'; fileId: string }
   | { t: 'insertHtml'; parentId: string; index?: number; html: string; styles?: Styles }
-  | { t: 'duplicate'; ids: string[] }
+  | { t: 'duplicate'; ids: string[]; instance?: boolean }
   | { t: 'fork'; id: string }
   | { t: 'importUrl'; url: string; width?: number; token?: string }
   | { t: 'createPage'; name?: string }

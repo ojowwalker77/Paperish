@@ -29,6 +29,7 @@ import { engine, type Rect } from './engine'
 import { css2Spec, describeGoogle, googleFonts } from './fonts'
 import { GUIDES, SERVER_INSTRUCTIONS } from './guide'
 import { cloneSubtree } from './html'
+import { instanceNodes } from './instances'
 import { tailwindColorNames } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
 import { forkVersion, htmlToNodes, linkProject } from './commands'
@@ -120,6 +121,8 @@ interface NodeSummary {
   worldY?: number
   text?: string
   childCount: number
+  main?: boolean
+  mainId?: string
 }
 
 interface NodeInfo extends NodeSummary {
@@ -187,6 +190,10 @@ function summary(_f: OpenFile, n: PNode, r?: Rect): NodeSummary {
   }
 
   if (n.type === 'Text') out.text = truncate(n.text ?? '', 200)
+
+  if (n.main) out.main = true
+
+  if (n.mainId) out.mainId = n.mainId
 
   return out
 }
@@ -514,6 +521,9 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
           fork: n.fork,
         }
       }),
+      mainComponents: Object.values(f.doc.nodes).flatMap((n) =>
+        n.main ? [{ id: n.id, name: n.name }] : [],
+      ),
       fonts: [...fonts],
       tokens: f.doc.tokens.map((t) => `${t.name}: ${t.value}`),
       selection: f.selection.pageId === f.pageId ? f.selection.ids : [],
@@ -1989,6 +1999,82 @@ HTML/CSS rules:
       f.broadcast({ t: 'reveal', ids: [fork.id] })
 
       return json(fork)
+    },
+  )
+
+  tool(
+    'create_component',
+    'Turn layers into main components. Build anything repeated (cards, list rows, nav items, buttons) once, make it a component, then place copies with create_instance.',
+    {
+      nodeIds: z.array(z.string()).min(1).describe('Layers to turn into components.'),
+      fileId: fileIdArg,
+    },
+    ({ nodeIds, fileId }) => {
+      const f = resolve(fileId)
+
+      const ids = nodeIds.flatMap((id) => {
+        const n = f.node(id)
+
+        return n.type === 'Root' || n.main ? [] : [n.id]
+      })
+
+      f.transact(
+        ids.map((id) => ({ t: 'patch', id, patch: { main: true } })),
+        'agent',
+        'create_component',
+      )
+
+      return json({ components: ids })
+    },
+  )
+
+  tool(
+    'create_instance',
+    `Place an instance of a main component. Instances stay linked: edits to the main reach every instance, except what was changed on the instance itself (set_text_content, update_styles), which stays as an override.
+Without parentId it goes right after the main (an artboard goes in free space). Returns its id and a descendantIdMap (main node id -> instance node id) for overrides.`,
+    {
+      componentId: z.string().describe('The main component.'),
+      parentId: z.string().optional().describe('Where to append it ("root" for the canvas).'),
+      fileId: fileIdArg,
+    },
+    async ({ componentId, parentId, fileId }) => {
+      const f = resolve(fileId)
+      const main = f.node(componentId)
+
+      if (!main.main)
+        throw new Error(`"${main.name}" isn't a main component: create_component it first.`)
+      const parent = parentId ? f.node(parentId) : f.doc.nodes[main.parent!]
+
+      if (!canHaveChildren(parent)) throw new Error(`"${parent.name}" cannot have children.`)
+
+      if (subtreeIds(f.doc.nodes, main.id).includes(parent.id))
+        throw new Error('An instance can’t go inside its own main component.')
+      const [root, ...rest] = instanceNodes(f, main.id)
+      const styles = { ...root.styles }
+
+      if (parent.type === 'Root') {
+        const p = await placement(f, 0)
+        styles.left = `${p.left}px`
+        styles.top = `${p.top}px`
+      } else if (f.doc.nodes[main.parent!]?.type === 'Root') {
+        delete styles.left
+        delete styles.top
+      }
+
+      const index = parentId ? parent.children.length : parent.children.indexOf(main.id) + 1
+
+      f.transact(
+        [{ t: 'insert', parentId: parent.id, index, nodes: [{ ...root, styles }, ...rest] }],
+        'agent',
+        'create_instance',
+      )
+
+      if (parent.type === 'Root') f.broadcast({ t: 'reveal', ids: [root.id] })
+
+      return json({
+        id: root.id,
+        descendantIdMap: Object.fromEntries(rest.map((n) => [n.mainId, n.id])),
+      })
     },
   )
 

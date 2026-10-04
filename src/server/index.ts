@@ -561,7 +561,8 @@ wss.on('connection', (socket) => {
                 send({ t: 'error', message: (e as Error).message })
               },
             )
-          else if (msg.t === 'duplicate') send({ t: 'created', ids: duplicate(f, msg.ids) })
+          else if (msg.t === 'duplicate')
+            send({ t: 'created', ids: duplicate(f, msg.ids, msg.instance) })
           else if (msg.t === 'fork')
             forkVersion(f, msg.id, 'user').then(
               ({ id }) => send({ t: 'created', ids: [id] }),

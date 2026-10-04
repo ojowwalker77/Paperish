@@ -51,6 +51,10 @@ A version can fork into several, to explore directions in parallel: Fork (⇧⌘
 
 The status bar counts the agent's steps on this file; click it for the timeline. A step is the agent's consecutive edits under one short why, which it passes to the edit tools. Revert undoes just that step as a new edit, so ⌘Z brings it back. Steps come from the undo history shared with the agent: undoing an agent's edit takes it off the list.
 
+## Components
+
+⌥⌘K turns the selection into a main component; "Create instance" (inspector or ⌘K) places a linked copy next to it. Edits to the main reach every instance, except what was changed on the instance itself: its text, a style, a name. Those stay as overrides. Duplicating an instance makes another; duplicating a main makes a plain copy. "Detach" unlinks an instance, and "Main" jumps to its main component.
+
 ## Comments
 
 Press C (or the comment count in the status bar) for comment mode: pins show on the canvas and the threads open in a panel. Click a layer to pin a comment to it; reply, resolve or delete from the panel. You're named from the checkout's `git config user.name`; agents sign with their own name, and their pins are orange. Comments live in the `.paperish` file and stay out of undo, so undoing an edit never drops one. Agents see `openComments` in `get_basic_info`, reply with `reply_to_comment_thread` once they've addressed one, then resolve it; `create_comment_thread` leaves a note for later.

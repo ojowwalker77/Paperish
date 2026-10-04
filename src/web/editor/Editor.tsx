@@ -3,6 +3,7 @@ import { store, useStore } from '../store'
 import {
   copySelection,
   deleteSelection,
+  createComponent,
   duplicateSelection,
   isTyping,
   openPreview,
@@ -126,6 +127,8 @@ function useShortcuts() {
           handled(),
           store.selection.forEach((id) => setLocked(id, !store.node(store.selection[0])?.locked))
         )
+
+      if (mod && e.altKey && e.code === 'KeyK') return (handled(), createComponent())
 
       if (mod && k === 'd') return (handled(), void duplicateSelection())
 
