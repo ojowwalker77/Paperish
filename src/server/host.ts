@@ -61,6 +61,7 @@ export type ServerMsg =
   | { t: 'call'; id: number; method: Method; args: HostArgs }
   | { t: 'ready'; origin: string }
   | { t: 'failed'; message: string }
+  | { t: 'done'; code: number }
 
 /** Main → server. */
 export type MainMsg =

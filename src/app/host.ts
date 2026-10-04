@@ -14,8 +14,9 @@ const ENTRY = fileURLToPath(
 )
 
 /** `installUpdate` restarts into a downloaded update, when the editor asks. */
-export function startServer(installUpdate: () => void) {
-  const env: NodeJS.ProcessEnv = { ...process.env, PAPERISH_ROOT: app.getAppPath() }
+export function startServer(installUpdate: () => void, extraEnv: NodeJS.ProcessEnv = {}) {
+  const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv, PAPERISH_ROOT: app.getAppPath() }
+  const headless = !!env.PAPERISH_DIFF
 
   if (app.isPackaged) {
     env.PAPERISH_PACKAGED = '1'
@@ -83,6 +84,11 @@ export function startServer(installUpdate: () => void) {
     },
   }
 
+  const done = new Promise<number>((resolve) => {
+    child.on('message', (msg: ServerMsg) => msg.t === 'done' && resolve(msg.code))
+    child.once('exit', (code) => resolve(code || 1))
+  })
+
   const started = new Promise<string>((resolve, reject) => {
     child.on('message', (msg: ServerMsg) => {
       if (msg.t === 'call') {
@@ -95,7 +101,7 @@ export function startServer(installUpdate: () => void) {
       } else if (msg.t === 'ready') {
         ready = true
         resolve(msg.origin)
-      } else reject(new Error(msg.message))
+      } else if (msg.t === 'failed') reject(new Error(msg.message))
     })
     child.once('exit', (code) => {
       exited = true
@@ -104,7 +110,7 @@ export function startServer(installUpdate: () => void) {
       pages.clear()
       reject(new Error(`The server exited (code ${code}).`))
 
-      if (ready && !stopping) {
+      if (ready && !stopping && !headless) {
         dialog.showErrorBox('Paperish stopped', `The server exited unexpectedly (code ${code}).`)
         app.exit(1)
       }
@@ -126,5 +132,5 @@ export function startServer(installUpdate: () => void) {
   /** Tell the editors how a new version's download is going. */
   const updateState = (update: UpdateState) => post({ t: 'update', update })
 
-  return { ready: started, stop, updateState }
+  return { ready: started, done, stop, updateState }
 }

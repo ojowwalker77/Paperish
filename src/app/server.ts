@@ -11,6 +11,19 @@ try {
     if (msg.t === 'stop') void server.shutdown().finally(() => process.exit(0))
   })
   post({ t: 'ready', origin: ORIGIN })
+
+  if (process.env.PAPERISH_DIFF) {
+    const code = await server.designDiff(JSON.parse(process.env.PAPERISH_DIFF)).then(
+      () => 0,
+      (e: Error) => {
+        console.error(`[paperish] ${e.message}`)
+
+        return 1
+      },
+    )
+
+    post({ t: 'done', code })
+  }
 } catch (e) {
   // SAFETY: caught from server listen; ErrnoException carries code when the port is busy.
   const busy = (e as NodeJS.ErrnoException).code === 'EADDRINUSE'

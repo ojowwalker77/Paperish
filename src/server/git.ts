@@ -215,3 +215,60 @@ export async function gitUser(dir: string): Promise<{ name: string; email: strin
 
   return { name, email }
 }
+
+export interface FileChange {
+  status: 'added' | 'modified' | 'deleted'
+  path: string
+  from: string
+}
+
+export async function mergeBase(root: string, a: string, b: string): Promise<string> {
+  try {
+    return (await text(root, ['merge-base', a, b])).trim()
+  } catch {
+    return a
+  }
+}
+
+export async function changedFiles(
+  root: string,
+  base: string,
+  head: string | null,
+  pathspec: string,
+): Promise<FileChange[]> {
+  const out = await text(root, [
+    'diff',
+    '--name-status',
+    '-z',
+    '-M',
+    base,
+    ...(head ? [head] : []),
+    '--',
+    pathspec,
+  ])
+
+  const parts = out.split('\0')
+  const changes: FileChange[] = []
+
+  for (let i = 0; i < parts.length - 1;) {
+    const code = parts[i++]
+
+    if (code.startsWith('R') || code.startsWith('C')) {
+      const from = parts[i++]
+      const to = parts[i++]
+      changes.push({ status: code.startsWith('R') ? 'modified' : 'added', path: to, from })
+    } else {
+      const file = parts[i++]
+      const status = code === 'A' ? 'added' : code === 'D' ? 'deleted' : 'modified'
+      changes.push({ status, path: file, from: file })
+    }
+  }
+
+  if (!head)
+    for (const file of (
+      await text(root, ['ls-files', '--others', '--exclude-standard', '-z', '--', pathspec])
+    ).split('\0'))
+      if (file) changes.push({ status: 'added', path: file, from: file })
+
+  return changes
+}
