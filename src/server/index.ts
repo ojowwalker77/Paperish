@@ -43,6 +43,7 @@ import { pick, proposalFor } from './proposals'
 import { closeKnobs, knobsFor, turnKnob } from './knobs'
 import { settingsState, updateSettings } from './settings'
 import { urlJob } from './importer'
+import { figmaJob } from './import/figma'
 import { runImport } from './tasks'
 import { newPage, Workspace, type Client, type OpenFile } from './workspace'
 
@@ -577,6 +578,11 @@ wss.on('connection', (socket) => {
               (e) =>
                 // SAFETY: runImport rejects with Error for failed imports.
                 console.warn('[paperish] import failed:', (e as Error).message),
+            )
+          else if (msg.t === 'importFigma')
+            runImport(f, figmaJob(f, { url: msg.url }), 'user', msg.token).catch((e) =>
+              // SAFETY: runImport rejects with Error for failed imports.
+              console.warn('[paperish] import failed:', (e as Error).message),
             )
           else if (msg.t === 'lint') sendLint(f)
           else if (msg.t === 'pickDesignMd') {

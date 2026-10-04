@@ -25,6 +25,13 @@ const SOURCES: SourceDef[] = [
     icon: <Icon.Globe size={16} />,
     panel: <WebPanel />,
   },
+  {
+    id: 'figma',
+    label: 'Figma',
+    title: 'Import a Figma frame',
+    icon: <Icon.Frame size={16} />,
+    panel: <FigmaPanel />,
+  },
 ]
 
 export function ImportDialog() {
@@ -119,6 +126,51 @@ function WebPanel() {
         </div>
       </div>
       <ImportFooter disabled={!url.trim()} onSubmit={submit} />
+    </>
+  )
+}
+
+function FigmaPanel() {
+  const saved = useStore((s) => !!s.settings?.figma)
+  const [url, setUrl] = useState('')
+  const [token, setToken] = useState('')
+  const ready = !!url.trim() && (saved || !!token.trim())
+
+  const submit = () => {
+    if (!ready) return
+
+    if (token.trim()) store.saveSettings({ figmaToken: token.trim() })
+    store.startImport({ t: 'importFigma', url: url.trim() })
+  }
+
+  return (
+    <>
+      <p className="pw-modal-text">
+        Rebuilds a frame through Figma's API: auto layout becomes flex, text keeps its styles,
+        vectors come in as SVG and images are copied into Paperish.
+        {!saved &&
+          ' It needs a personal access token (Figma → Settings → Security) that can read file content. The token stays on this machine.'}
+      </p>
+      <input
+        className="pw-modal-input"
+        autoFocus
+        placeholder="Link to a frame (Copy link to selection)"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+      />
+      <input
+        className="pw-modal-input"
+        type="password"
+        spellCheck={false}
+        placeholder={
+          saved ? 'Token saved. Paste a new one to replace it' : 'Personal access token (figd_…)'
+        }
+        value={token}
+        onChange={(e) => setToken(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+      />
+      <ImportFooter disabled={!ready} onSubmit={submit} />
     </>
   )
 }

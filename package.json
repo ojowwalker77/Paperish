@@ -39,6 +39,7 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@figma/rest-api-spec": "^0.43.0",
     "@oxlint/plugins": "1.86.0",
     "@types/node": "^26.6.3",
     "@types/react": "^19.3.0",

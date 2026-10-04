@@ -161,6 +161,7 @@ function useItems(): Item[] {
 
     act('Preview', openPreview, 'P')
     act('Import a web page…', () => store.setImport('url'), undefined, <Icon.Globe size={12} />)
+    act('Import from Figma…', () => store.setImport('figma'), undefined, <Icon.Frame size={12} />)
 
     if (inGit)
       act('Show changes', () => store.setChangesOpen(true), undefined, <Icon.Branch size={12} />)

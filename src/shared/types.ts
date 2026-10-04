@@ -329,6 +329,7 @@ export interface TaskState {
 /** App-wide settings as the editor sees them (the OpenRouter key itself stays on the server). */
 export interface SettingsState {
   openRouter: boolean
+  figma: boolean
   theme: ThemeSetting
 }
 
@@ -474,9 +475,10 @@ export type ClientMsg =
   | { t: 'duplicate'; ids: string[]; instance?: boolean }
   | { t: 'fork'; id: string }
   | { t: 'importUrl'; url: string; width?: number; token?: string }
+  | { t: 'importFigma'; url: string; token?: string }
   | { t: 'createPage'; name?: string }
-  /** Set the OpenRouter key; empty removes it. */
-  | { t: 'settings'; openRouterKey?: string; theme?: ThemeSetting }
+  /** Set the OpenRouter key or Figma token; empty removes it. */
+  | { t: 'settings'; openRouterKey?: string; figmaToken?: string; theme?: ThemeSetting }
   /** Restart into the downloaded update. */
   | { t: 'installUpdate' }
   /** Check the open file's current page against its DESIGN.md. */

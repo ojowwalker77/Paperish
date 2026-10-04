@@ -47,7 +47,8 @@ import {
   knobValues,
   waitForKnobs,
 } from './knobs'
-import { urlJob } from './importer'
+import { urlJob, type ImportResult } from './importer'
+import { figmaJob } from './import/figma'
 import { runImport } from './tasks'
 import { findSampleData } from './samples'
 import { toJSX, toStaticHTML } from './serialize'
@@ -338,6 +339,14 @@ function pct(v: number): string {
 
 function isStyleString(v: StyleValue): v is string {
   return Object.prototype.toString.call(v) === '[object String]'
+}
+
+async function importSummary(f: OpenFile, rootId: string, result: ImportResult): Promise<string> {
+  const ids = subtreeIds(f.doc.nodes, rootId).filter((id) => f.doc.nodes[id].type !== 'Root')
+  const rects = await layout(f, ids.slice(0, 400))
+  const s = result.stats
+
+  return `Imported "${f.doc.nodes[rootId].name}" as artboard ${rootId}: ${s.layers} layers, ${s.images} images${s.imagesFailed ? ` (${s.imagesFailed} not downloaded)` : ''}, ${s.fonts} font files, ${Math.round(s.ms / 100) / 10}s.\n\n${treeLines(f, rootId, rects, 2, 80).join('\n')}${result.warnings.length ? `\n\nNotes:\n- ${result.warnings.join('\n- ')}` : ''}`
 }
 
 /** Runs a tool in the app instead of here: the stdio proxy. */
@@ -1289,13 +1298,27 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
     async ({ url, width, name, fileId }) => {
       const f = resolve(fileId)
       const { rootId, result } = await runImport(f, urlJob(f, { url, width, name }), 'agent')
-      const ids = subtreeIds(f.doc.nodes, rootId).filter((id) => f.doc.nodes[id].type !== 'Root')
-      const rects = await layout(f, ids.slice(0, 400))
-      const s = result.stats
 
-      return text(
-        `Imported "${f.doc.nodes[rootId].name}" as artboard ${rootId}: ${s.layers} layers, ${s.images} images${s.imagesFailed ? ` (${s.imagesFailed} left remote)` : ''}, ${s.fonts} font files, ${Math.round(s.ms / 100) / 10}s.\n\n${treeLines(f, rootId, rects, 2, 80).join('\n')}${result.warnings.length ? `\n\nNotes:\n- ${result.warnings.join('\n- ')}` : ''}`,
-      )
+      return text(await importSummary(f, rootId, result))
+    },
+  )
+
+  tool(
+    'import_figma',
+    `Import a Figma frame as editable design layers through Figma's REST API, using the personal access token saved in Paperish (or FIGMA_TOKEN). Frames and auto layout become flex Frames, text keeps its type styles, fills, strokes, radii and effects become CSS, image fills are downloaded locally, and vectors and icons are exported as SVG. Creates a new artboard. Use it to bring an existing Figma design in before iterating on it.`,
+    {
+      url: z
+        .string()
+        .min(1)
+        .describe('Link to a frame (Figma: right-click → Copy link to selection), with node-id.'),
+      name: z.string().optional().describe('Artboard name (defaults to the frame name).'),
+      fileId: fileIdArg,
+    },
+    async ({ url, name, fileId }) => {
+      const f = resolve(fileId)
+      const { rootId, result } = await runImport(f, figmaJob(f, { url, name }), 'agent')
+
+      return text(await importSummary(f, rootId, result))
     },
   )
 
