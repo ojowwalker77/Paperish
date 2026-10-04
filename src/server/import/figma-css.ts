@@ -1,4 +1,11 @@
-import type { Effect, FrameNode, Paint, RGBA, TypePropertiesTrait } from '@figma/rest-api-spec'
+import type {
+  Effect,
+  FrameNode,
+  Paint,
+  RGBA,
+  SolidPaint,
+  TypePropertiesTrait,
+} from '@figma/rest-api-spec'
 
 export type Layer = Partial<Omit<FrameNode, 'type' | 'children'> & TypePropertiesTrait> & {
   id: string
@@ -13,6 +20,17 @@ export interface Css {
 }
 
 export type Kind = 'box' | 'text' | 'img' | 'svg' | 'png'
+
+export type Vars = Map<string, string>
+
+const PADDING = ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft'] as const
+
+const CORNERS = [
+  'topLeftRadius',
+  'topRightRadius',
+  'bottomRightRadius',
+  'bottomLeftRadius',
+] as const
 
 interface AlignMap {
   [figma: string]: string
@@ -61,8 +79,9 @@ export function sizing(n: Layer, axis: 'h' | 'v'): 'FIXED' | 'HUG' | 'FILL' {
   return 'FIXED'
 }
 
-export function look(n: Layer, kind: Kind): Css {
+export function look(n: Layer, kind: Kind, vars: Vars): Css {
   const css: Css = {}
+  const bound = n.boundVariables
 
   if (autoLayout(n)) {
     const row = n.layoutMode === 'HORIZONTAL'
@@ -71,15 +90,24 @@ export function look(n: Layer, kind: Kind): Css {
     if (!row) css['flex-direction'] = 'column'
 
     if (n.layoutWrap === 'WRAP') css['flex-wrap'] = 'wrap'
-    const pad = [n.paddingTop, n.paddingRight, n.paddingBottom, n.paddingLeft].map((v) => v ?? 0)
+    const pad = PADDING.map((k) => ref(vars, bound?.[k]) ?? px(n[k] ?? 0))
 
-    if (pad.some(Boolean)) css.padding = pad.map(px).join(' ')
-    const gap = n.primaryAxisAlignItems === 'SPACE_BETWEEN' ? 0 : Math.max(0, n.itemSpacing ?? 0)
-    const cross = n.layoutWrap === 'WRAP' ? (n.counterAxisSpacing ?? 0) : undefined
+    if (pad.some((v) => v !== '0px')) css.padding = pad.join(' ')
 
-    if (cross !== undefined && cross !== gap)
-      css.gap = row ? `${px(cross)} ${px(gap)}` : `${px(gap)} ${px(cross)}`
-    else if (gap) css.gap = px(gap)
+    const gap =
+      n.primaryAxisAlignItems === 'SPACE_BETWEEN'
+        ? undefined
+        : (ref(vars, bound?.itemSpacing) ??
+          (n.itemSpacing ? px(Math.max(0, n.itemSpacing)) : undefined))
+
+    const cross =
+      n.layoutWrap === 'WRAP'
+        ? (ref(vars, bound?.counterAxisSpacing) ?? px(n.counterAxisSpacing ?? 0))
+        : undefined
+
+    if (cross && cross !== (gap ?? '0px'))
+      css.gap = row ? `${cross} ${gap ?? '0px'}` : `${gap ?? '0px'} ${cross}`
+    else if (gap) css.gap = gap
 
     if (n.primaryAxisAlignItems && n.primaryAxisAlignItems !== 'MIN')
       css['justify-content'] = ALIGN[n.primaryAxisAlignItems]
@@ -96,34 +124,41 @@ export function look(n: Layer, kind: Kind): Css {
   if (n.clipsContent) css.overflow = 'hidden'
 
   const radii = n.rectangleCornerRadii
+  const radiusVars = CORNERS.map((k) => ref(vars, bound?.[k]))
 
   if (n.type === 'ELLIPSE') css['border-radius'] = '50%'
+  else if (radiusVars[0] && radiusVars.every((v) => v === radiusVars[0]))
+    css['border-radius'] = radiusVars[0]
   else if (radii && radii.some((r) => r !== radii[0]))
     css['border-radius'] = radii.map(px).join(' ')
   else if (n.cornerRadius) css['border-radius'] = px(n.cornerRadius)
 
-  Object.assign(css, kind === 'text' ? typography(n) : stroke(n), effects(n, kind))
+  Object.assign(css, kind === 'text' ? typography(n, vars) : stroke(n, vars), effects(n, kind))
 
   return css
 }
 
-function typography(n: Layer): Css {
+function typography(n: Layer, vars: Vars): Css {
   const s = n.style ?? {}
   const css: Css = {}
 
-  if (s.fontFamily) css['font-family'] = `'${s.fontFamily.replace(/'/g, '')}'`
+  const tv = (k: 'fontFamily' | 'fontSize' | 'fontWeight' | 'letterSpacing' | 'lineHeight') =>
+    ref(vars, s.boundVariables?.[k] ?? n.boundVariables?.[k]?.[0])
 
-  if (s.fontSize) css['font-size'] = px(s.fontSize)
+  if (s.fontFamily) css['font-family'] = tv('fontFamily') ?? `'${s.fontFamily.replace(/'/g, '')}'`
 
-  if (s.fontWeight && s.fontWeight !== 400) css['font-weight'] = s.fontWeight
+  if (s.fontSize) css['font-size'] = tv('fontSize') ?? px(s.fontSize)
+
+  if (s.fontWeight && s.fontWeight !== 400) css['font-weight'] = tv('fontWeight') ?? s.fontWeight
 
   if (s.italic) css['font-style'] = 'italic'
 
-  if (s.lineHeightUnit === 'PIXELS' && s.lineHeightPx) css['line-height'] = px(s.lineHeightPx)
+  if (s.lineHeightUnit === 'PIXELS' && s.lineHeightPx)
+    css['line-height'] = tv('lineHeight') ?? px(s.lineHeightPx)
   else if (s.lineHeightUnit === 'FONT_SIZE_%' && s.lineHeightPercentFontSize)
-    css['line-height'] = round(s.lineHeightPercentFontSize / 100)
+    css['line-height'] = tv('lineHeight') ?? round(s.lineHeightPercentFontSize / 100)
 
-  if (s.letterSpacing) css['letter-spacing'] = px(s.letterSpacing)
+  if (s.letterSpacing) css['letter-spacing'] = tv('letterSpacing') ?? px(s.letterSpacing)
   const align = { CENTER: 'center', RIGHT: 'right', JUSTIFIED: 'justify', LEFT: undefined }
 
   if (s.textAlignHorizontal) css['text-align'] = align[s.textAlignHorizontal]
@@ -155,17 +190,17 @@ function typography(n: Layer): Css {
 
   const fill = visible(n.fills)[0]
 
-  if (fill?.type === 'SOLID') css.color = color(fill.color, fill.opacity)
+  if (fill?.type === 'SOLID') css.color = paintColor(fill, vars)
   else if (fill && 'gradientStops' in fill) css.color = color(fill.gradientStops[0].color)
 
   return css
 }
 
-function stroke(n: Layer): Css {
+function stroke(n: Layer, vars: Vars): Css {
   const p = visible(n.strokes).find((s) => s.type === 'SOLID')
 
   if (!p || p.type !== 'SOLID') return {}
-  const c = color(p.color, p.opacity)
+  const c = paintColor(p, vars)
   const w = n.strokeWeight ?? 1
   const line = n.strokeDashes?.length ? 'dashed' : 'solid'
   const sides = n.individualStrokeWeights
@@ -217,28 +252,34 @@ function effects(n: Layer, kind: Kind): Css {
   return css
 }
 
-export function background(n: Layer, media: Map<string, string>): Css {
+export function background(n: Layer, media: Map<string, string>, vars: Vars): Css {
   const fills = visible(n.fills)
   const box = boxOf(n)
   const w = n.size?.x ?? box.width
   const h = n.size?.y ?? box.height
 
   if (fills.length === 1 && fills[0].type === 'SOLID')
-    return { background: color(fills[0].color, fills[0].opacity) }
+    return { background: paintColor(fills[0], vars) }
 
   const layers = fills
     .toReversed()
-    .map((p) => paintLayer(p, w, h, media))
+    .map((p) => paintLayer(p, w, h, media, vars))
     .filter(Boolean)
 
   return layers.length ? { background: layers.join(', ') } : {}
 }
 
-function paintLayer(p: Paint, w: number, h: number, media: Map<string, string>): string {
+function paintLayer(
+  p: Paint,
+  w: number,
+  h: number,
+  media: Map<string, string>,
+  vars: Vars,
+): string {
   const a = p.opacity ?? 1
 
   if (p.type === 'SOLID') {
-    const c = color(p.color, a)
+    const c = paintColor(p, vars)
 
     return `linear-gradient(${c}, ${c})`
   }
@@ -291,6 +332,16 @@ function paintLayer(p: Paint, w: number, h: number, media: Map<string, string>):
   const ry = Math.hypot((h2.x - h0.x) * w, (h2.y - h0.y) * h)
 
   return `radial-gradient(${px(rx)} ${px(ry)} at ${cx}% ${cy}%, ${stops((t) => t)})`
+}
+
+function ref(vars: Vars, alias: { id: string } | undefined) {
+  const name = alias && vars.get(alias.id)
+
+  return name ? `var(${name})` : undefined
+}
+
+function paintColor(p: SolidPaint, vars: Vars) {
+  return ((p.opacity ?? 1) >= 1 && ref(vars, p.boundVariables?.color)) || color(p.color, p.opacity)
 }
 
 function hex(v: number) {

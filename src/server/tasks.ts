@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto'
 import { mergeFontFaces } from '../shared/fontfaces'
-import type { Op, TaskState } from '../shared/types'
+import type { Op, TaskState, Token } from '../shared/types'
 import type { ImportResult, Progress } from './importer'
 import { findPlacement } from './placement'
 import type { OpenFile, Origin } from './workspace'
@@ -49,8 +49,7 @@ export async function runImport(
     if (result.fontFaces.length)
       ops.push({ t: 'fontFaces', fontFaces: mergeFontFaces(f.doc.fontFaces, result.fontFaces) })
 
-    const names = new Set(f.doc.tokens.map((t) => t.name))
-    const tokens = (result.tokens ?? []).filter((t) => !names.has(t.name))
+    const tokens = newTokens(f, result.tokens ?? [])
 
     if (tokens.length) ops.push({ t: 'tokens', tokens: [...f.doc.tokens, ...tokens] })
     f.transact(ops, origin, 'import')
@@ -76,6 +75,12 @@ export async function runImport(
     push()
     throw e
   }
+}
+
+export function newTokens(f: OpenFile, tokens: Token[]): Token[] {
+  const names = new Set(f.doc.tokens.map((t) => t.name))
+
+  return tokens.filter((t) => !names.has(t.name))
 }
 
 export function hostOf(url: string): string {
