@@ -7,6 +7,7 @@ import {
   useState,
   type CSSProperties,
 } from 'react'
+import { iconComponents } from '../../shared/icons'
 import { parseMarkup } from '../../shared/markup'
 import type { PNode } from '../../shared/types'
 import { useStore } from '../store'
@@ -52,7 +53,12 @@ export function ComponentView({ n, style }: { n: PNode; style: CSSProperties }) 
   const fill = hasExplicitWidth(n.styles)
   const fillHeight = hasExplicitHeight(n.styles)
   const components = project?.components
-  const parsed = useMemo(() => parseMarkup(n.content, components ?? []), [n.content, components])
+  const icons = project?.icons
+
+  const parsed = useMemo(
+    () => parseMarkup(n.content, [...(components ?? []), ...iconComponents(icons)]),
+    [n.content, components, icons],
+  )
 
   const payload = useMemo(
     () => ({
