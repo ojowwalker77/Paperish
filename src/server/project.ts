@@ -8,7 +8,9 @@ import type {
   JsonValue,
   ProjectState,
 } from '../shared/types'
+import { iconComponents } from '../shared/icons'
 import { startHost, type HostHandle } from './component-host'
+import { loadIcons } from './icons'
 import { nuxtAliases, nuxtConfigFile, nuxtCss } from './nuxt'
 
 // Linked codebases: detect frameworks and Tailwind, discover components and
@@ -45,7 +47,9 @@ export function projectFor(doc: Doc): ProjectState | undefined {
 }
 
 export function componentsFor(doc: Doc): ComponentInfo[] {
-  return projectFor(doc)?.components ?? []
+  const p = projectFor(doc)
+
+  return p ? [...p.components, ...iconComponents(p.icons)] : []
 }
 
 /** The linked codebase's Tailwind v4 CSS entry, so write_html uses its theme. */
@@ -83,6 +87,7 @@ export async function ensureProject(input: string): Promise<ProjectState> {
     const r = rt
     r.starting = (async () => {
       try {
+        r.state = { ...r.state, icons: await loadIcons(root, r.state.frameworks) }
         r.host = await startHost(root, () => r.state)
         r.state = { ...r.state, status: 'ready', hostOrigin: r.host.origin }
       } catch (e) {

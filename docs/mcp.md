@@ -8,7 +8,7 @@ Names and argument shapes match Paper's MCP, so prompts and skills written for P
 | --- | --- |
 | Files | `list_files` `open_file` `create_file` `create_page` |
 | Repo | `compare_revision` |
-| Codebase | `link_project` `list_components` `set_component_props` `find_sample_data` |
+| Codebase | `link_project` `list_components` `set_component_props` `find_sample_data` `search_icons` |
 | Import | `import_url` |
 | Verify | `visual_diff` (against a URL, image, node or git revision), `lint_design` (against the repo's DESIGN.md) |
 | Read | `get_basic_info` `get_selection` `get_node_info` `get_children` `get_tree_summary` `get_screenshot` `get_jsx` `get_computed_styles` `get_fill_image` `find_nodes` `get_font_family_info` `get_guide` |
@@ -77,6 +77,14 @@ Agents use components by name in `write_html`, e.g. `<Button variant="outline">S
 - **Shapes:** TypeScript interfaces and types whose name matches, for when there's no data to copy.
 
 It's read-only and bounded: dependencies and build output are skipped, files over 256 KB aren't read, and the reply holds at most 8 excerpts and 6 types of up to 1,500 characters each, listing further matches by path.
+
+## Icons
+
+`search_icons` searches the icon library the linked codebase depends on: `lucide-react`, `@heroicons/react` (24/outline), `@tabler/icons-react`, `@phosphor-icons/react`, `@radix-ui/react-icons`, or their Vue versions. Each match comes back with its name and its SVG, rendered from the codebase's own package. Without one of these libraries, matches come from a bundled Lucide set.
+
+Agents place an icon in `write_html` either way:
+- **Inline SVG:** paste the returned markup. It becomes an SVG layer, colored with `color` and sized with `width`/`height`.
+- **Component:** `<Search />`, alone or inside a real component's children (`<Button><Plus /> New</Button>`). The component host loads the library, and `get_jsx` imports the icon from it.
 
 ## Visual diff
 

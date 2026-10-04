@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto'
 import { createRequire } from 'node:module'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { pathToFileURL } from 'node:url'
+import { iconComponents } from '../shared/icons'
 import type { ProjectState } from '../shared/types'
 import { CACHE_DIR } from './config'
 import { css2Spec, googleFonts } from './fonts'
@@ -164,6 +165,7 @@ export async function startHost(root: string, getState: () => ProjectState): Pro
           ? ['react', 'react-dom', reactClientEntry(root)]
           : []),
         ...(state.frameworks.includes('vue') ? ['vue'] : []),
+        ...(state.icons ? [state.icons.module] : []),
       ].filter(Boolean) as string[],
     },
   }
@@ -295,7 +297,10 @@ function hostHtml(root: string): string {
 }
 
 function entrySource(root: string, state: ProjectState): string {
-  const files = [...new Set(state.components.map((c) => c.file))]
+  const components = [...state.components, ...iconComponents(state.icons)]
+  const specs = new Map(state.components.map((c) => [c.file, `/${c.file}`]))
+
+  if (state.icons) specs.set(state.icons.module, state.icons.module)
   const hasReact = state.frameworks.includes('react')
   const hasVue = state.frameworks.includes('vue')
   const legacyReact = hasReact && reactMajor(root) < 18
@@ -320,10 +325,10 @@ function entrySource(root: string, state: ProjectState): string {
 
   if (hasVue) lines.push(`import { createApp, h, reactive, markRaw, Suspense } from 'vue';`)
   lines.push(
-    `const loaders = {${files.map((f) => `${JSON.stringify(f)}: () => import(${JSON.stringify('/' + f)})`).join(',\n')}};`,
+    `const loaders = {${[...specs].map(([f, spec]) => `${JSON.stringify(f)}: () => import(${JSON.stringify(spec)})`).join(',\n')}};`,
   )
   lines.push(
-    `const frameworks = ${JSON.stringify(Object.fromEntries(state.components.map((c) => [c.id, c.framework])))};`,
+    `const frameworks = ${JSON.stringify(Object.fromEntries(components.map((c) => [c.id, c.framework])))};`,
   )
   lines.push(RUNTIME_COMMON)
 

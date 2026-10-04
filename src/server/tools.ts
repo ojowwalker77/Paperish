@@ -33,6 +33,7 @@ import { instanceNodes } from './instances'
 import { tailwindColorNames } from './tailwind'
 import { componentsFor, projectFor, tailwindEntryFor } from './project'
 import { forkVersion, htmlToNodes, linkProject } from './commands'
+import { searchIcons } from './icons'
 import { compareFiles, openRevision } from './history'
 import { checkBoards, lintFile } from './lint'
 import { agentNamed, createThread, reply, setStatus } from './comments'
@@ -1198,6 +1199,21 @@ export function createMcpServer(ws: Workspace, projectId: string, forward?: Forw
   )
 
   tool(
+    'search_icons',
+    "Find icons in the icon library the linked codebase uses (Lucide, Heroicons, Tabler, Phosphor, Radix), or in Lucide when it has none. Names differ by library (search vs magnifying-glass), so pass a few synonyms. Returns each icon's name and svg, and how to place it in write_html.",
+    {
+      query: z
+        .string()
+        .min(1)
+        .describe('Words to match icon names, e.g. "search magnifying find".'),
+      limit: z.number().int().min(1).max(50).optional().describe('Max icons (default 12).'),
+      fileId: fileIdArg,
+    },
+    async ({ query, limit, fileId }) =>
+      json(await searchIcons(projectFor(resolve(fileId).doc), query, limit ?? 12)),
+  )
+
+  tool(
     'set_component_props',
     'Update props (and/or children markup) of Component nodes. Props merge into the existing ones; pass null to remove a prop.',
     {
@@ -1603,7 +1619,7 @@ HTML/CSS rules:
 - Assume box-sizing: border-box. UA styles are reset (headings don't have default size/margins).
 - Any Google Font or locally installed font works in font-family.
 - One style per text element (nested inline formatting is flattened). Use <pre> or white-space:pre for code.
-- SVG icons (stroke="currentColor"), never emoji icons.
+- Icons from search_icons (inline SVG, or the codebase's icon component), never emoji icons.
 - layer-name="..." names layers. Local images: <img src="paper-asset:///absolute/path.png">.
 - Absolute positioning is fine for decoration; don't cover the whole artboard with an absolute layer.`,
     {

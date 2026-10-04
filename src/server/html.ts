@@ -177,7 +177,7 @@ export function parseHtml(html: string, ctx: ParseContext): ParseResult {
       }
 
       warnings.add(
-        `<${el.name}> is not a component in the linked codebase (see list_components); rendered as a plain frame.`,
+        `<${el.name}> is not a component or icon in the linked codebase (see list_components, search_icons); rendered as a plain frame.`,
       )
     }
 

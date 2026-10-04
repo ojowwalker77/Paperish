@@ -41,7 +41,7 @@ Share the brief with the user in a sentence or two, then build.
 - Layout: display:flex with gap and padding. Use flexShrink:0 on fixed-size items (icons, avatars, trailing buttons) so rows align. Grid works (real CSS) but flex is easier for the user to edit.
 - Size text containers with width/flex rather than fixed heights; let text wrap.
 - Text: one style per Text node (rich text is flattened). Use <pre> or white-space:pre for code.
-- Icons: inline <svg> with stroke="currentColor"; never emoji as icons.
+- Icons: search_icons finds them in the codebase's icon library (Lucide when it has none). Paste the returned svg, or inside a real component's children use the icon component (<Button><Plus /> New</Button>). Never emoji as icons.
 - Images: https URLs, or local files as <img src="paper-asset:///absolute/path.png">.
 - layer-name="Hero" names layers; name every meaningful container.
 - Absolute positioning is fine for decoration; don't cover the whole artboard with one absolute layer.

@@ -255,6 +255,13 @@ export interface ProjectState {
   error?: string
   hostOrigin?: string
   components: ComponentInfo[]
+  icons?: IconSet
+}
+
+export interface IconSet {
+  module: string
+  framework: Framework
+  names: string[]
 }
 
 // ---- Repo-backed files -------------------------------------------------------------
