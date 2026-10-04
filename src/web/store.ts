@@ -12,6 +12,7 @@ import type {
   PNode,
   Page,
   ProjectInfo,
+  KnobSet,
   Proposal,
   ProjectState,
   ProjectView,
@@ -113,6 +114,7 @@ class Store {
   /** An agent's options waiting for the user to pick one, and the note to send with the pick. */
   proposal: Proposal | null = null
   pickNote = ''
+  knobs: KnobSet | null = null
   /** Comment mode: the thread open in the panel, and a pin placed but not yet posted. */
   activeThread: string | null = null
   commentDraft: { pageId: string; nodeId: string | null; x: number; y: number } | null = null
@@ -261,6 +263,7 @@ class Store {
 
           this.lint = null
           this.proposal = null
+          this.knobs = null
           this.activeThread = null
           this.commentDraft = null
           this.focus = null
@@ -338,6 +341,15 @@ class Store {
         break
       }
 
+      case 'knobs': {
+        this.knobs = msg.knobs
+        const board = msg.knobs && this.doc?.nodes[msg.knobs.nodeId]
+        const page = board && this.doc?.pages.find((p) => p.rootId === board.parent)
+
+        if (page && page.id !== this.pageId && !ENGINE_MODE) this.setPage(page.id)
+        break
+      }
+
       case 'comment:created':
         this.activeThread = msg.threadId
         this.commentDraft = null
@@ -380,6 +392,7 @@ class Store {
         this.steps = []
         this.stepsOpen = false
         this.proposal = null
+        this.knobs = null
         this.activeThread = null
         this.commentDraft = null
         this.focus = null
@@ -606,6 +619,14 @@ class Store {
   setPickNote(note: string) {
     this.pickNote = note
     this.emit()
+  }
+
+  turnKnob(name: string, value: string) {
+    if (this.knobs) this.send({ t: 'knob', knobsId: this.knobs.id, name, value })
+  }
+
+  closeKnobs() {
+    if (this.knobs) this.send({ t: 'knobsDone', knobsId: this.knobs.id })
   }
 
   startComment(draft: Store['commentDraft']) {

@@ -414,6 +414,22 @@ export interface PickResult {
   removed: string[]
 }
 
+export interface KnobSet {
+  id: string
+  nodeId: string
+  knobs: Knob[]
+}
+
+export interface Knob {
+  name: string
+  label: string
+  type: 'slider' | 'number' | 'color'
+  min?: number
+  max?: number
+  step?: number
+  unit?: string
+}
+
 // ---- Wire protocol (editor/engine <-> server) --------------------------------
 
 export type ClientMsg =
@@ -469,6 +485,8 @@ export type ClientMsg =
   /** Answer the open proposal: an option's artboard, or null for none. */
   | { t: 'pick'; proposalId: string; nodeId: string | null; note?: string }
   | { t: 'revertStep'; step: number }
+  | { t: 'knob'; knobsId: string; name: string; value: string }
+  | { t: 'knobsDone'; knobsId: string }
 
 export type ServerMsg =
   | { t: 'doc'; doc: Doc; version: number; pageId: string }
@@ -501,6 +519,7 @@ export type ServerMsg =
   | { t: 'update'; update: UpdateState }
   | { t: 'lint'; fileId: string; lint: LintState }
   | { t: 'proposal'; proposal: Proposal | null }
+  | { t: 'knobs'; knobs: KnobSet | null }
   /** The thread this connection just created, so its editor can open it. */
   | { t: 'comment:created'; threadId: string }
   | { t: 'steps'; steps: AgentStep[] }

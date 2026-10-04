@@ -18,7 +18,7 @@ const OFF_CANVAS: CSSProperties = { position: 'relative', left: 'auto', top: 'au
 
 export function VersionDock() {
   const focus = useStore((s) => s.focus)
-  const picking = useStore((s) => !!s.proposal)
+  const picking = useStore((s) => !!s.proposal || !!s.knobs)
   const readOnly = useStore((s) => s.view?.kind === 'branch')
   const versions = useStore((s) => viewOf(s.focus)?.versions ?? [], shallow)
   const branches = useStore((s) => branchPoints(viewOf(s.focus)), shallow)
