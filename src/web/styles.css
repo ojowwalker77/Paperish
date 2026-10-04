@@ -2186,6 +2186,49 @@ a.pw-path:hover {
   background: rgba(10, 132, 255, 0.04);
   box-shadow: 0 0 0 1px var(--accent);
 }
+.pw-guide {
+  min-width: 1px;
+  min-height: 1px;
+  background: var(--danger);
+  opacity: 0.8;
+}
+.pw-rulers {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.pw-ruler {
+  position: absolute;
+  display: block;
+  color: var(--faint);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+}
+.pw-ruler.x {
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 16px;
+  box-shadow: 0 1px 0 var(--hairline);
+}
+.pw-ruler.y {
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 100%;
+  box-shadow: 1px 0 0 var(--hairline);
+}
+.pw-ruler-corner {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  background: var(--bg);
+  box-shadow: 1px 1px 0 var(--hairline);
+}
 
 .pw-comp-placeholder {
   display: inline-flex;

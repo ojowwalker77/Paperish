@@ -20,10 +20,13 @@ import {
   toWorld,
   worldRect,
   zoomToFit,
+  bounds,
   type Box,
 } from './actions'
 import { Boards } from './Boards'
 import { Overlay } from './Overlay'
+import { Rulers } from './Rulers'
+import { snap, snapTargets, type Guide } from './snap'
 
 const DRAG_THRESHOLD = 3
 
@@ -81,7 +84,7 @@ async function createText(e: RPointerEvent, parentId: string | null) {
   if (ids[0]) startEditingText(ids[0])
 }
 
-function startMove(e: RPointerEvent) {
+function startMove(e: RPointerEvent, onGuides: (guides: Guide[]) => void) {
   const items = store.selection.filter(isMovable).map((id) => {
     const n = store.node(id)!
 
@@ -90,11 +93,21 @@ function startMove(e: RPointerEvent) {
 
   if (!items.length) return
   const zoom = store.camera.zoom
+  const parent = store.node(store.node(items[0].id)?.parent)
+  const ids = items.map((it) => it.id)
+  const targets = snapTargets(parent && parent.type !== 'Root' ? parent.id : null, ids)
+  const start = bounds(ids)
   let last = { dx: 0, dy: 0 }
   drag(
     e,
-    (_ev, dx, dy) => {
-      last = { dx: Math.round(dx / zoom), dy: Math.round(dy / zoom) }
+    (ev, dx, dy) => {
+      const s =
+        start && !ev.ctrlKey
+          ? snap({ ...start, x: start.x + dx / zoom, y: start.y + dy / zoom }, targets)
+          : { dx: 0, dy: 0, guides: [] }
+
+      onGuides(s.guides)
+      last = { dx: Math.round(dx / zoom + s.dx), dy: Math.round(dy / zoom + s.dy) }
 
       for (const it of items) {
         if (!it.el) continue
@@ -103,6 +116,8 @@ function startMove(e: RPointerEvent) {
       }
     },
     (_ev, moved) => {
+      onGuides([])
+
       if (!moved) return
       store.tx(
         items.map((it) => ({
@@ -129,6 +144,10 @@ export function Canvas() {
   const [draft, setDraft] = useState<Box | null>(null)
   const [space, setSpace] = useState(false)
   const [panning, setPanning] = useState(false)
+  const [guides, setGuides] = useState<Guide[]>([])
+
+  const showGuides = (next: Guide[]) =>
+    setGuides((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next))
 
   useEffect(() => {
     setViewport(vpRef.current)
@@ -318,11 +337,15 @@ export function Canvas() {
 
   const startFrame = (e: RPointerEvent, parentId: string | null) => {
     const a = toWorld(e.clientX, e.clientY)
+    const targets = snapTargets(parentId, [])
     let box: Box = { x: a.x, y: a.y, width: 0, height: 0 }
     drag(
       e,
       (ev) => {
-        const b = toWorld(ev.clientX, ev.clientY)
+        const p = toWorld(ev.clientX, ev.clientY)
+        const s = ev.ctrlKey ? null : snap({ ...p, width: 0, height: 0 }, targets)
+        const b = s ? { x: p.x + s.dx, y: p.y + s.dy } : p
+        showGuides(s?.guides ?? [])
         box = {
           x: Math.min(a.x, b.x),
           y: Math.min(a.y, b.y),
@@ -333,6 +356,7 @@ export function Canvas() {
       },
       async (_ev, moved) => {
         setDraft(null)
+        showGuides([])
         store.setTool('move')
         const w = Math.round(moved ? box.width : parentId ? 120 : 400)
         const h = Math.round(moved ? box.height : parentId ? 80 : 300)
@@ -424,7 +448,7 @@ export function Canvas() {
     }
 
     if (!store.selection.includes(target)) store.select([target])
-    startMove(e)
+    startMove(e, showGuides)
   }
 
   const onPointerMove = (e: RPointerEvent) => {
@@ -479,7 +503,8 @@ export function Canvas() {
       <div className="pw-camera" ref={cameraRef}>
         <Boards />
       </div>
-      <Overlay marquee={marquee} draft={draft} panRef={overlayRef} />
+      <Overlay marquee={marquee} draft={draft} guides={guides} panRef={overlayRef} />
+      <Rulers />
     </div>
   )
 }

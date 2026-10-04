@@ -159,6 +159,8 @@ function useShortcuts() {
 
       if (e.shiftKey && e.code === 'Digit2') return (handled(), zoomToFit(store.selection))
 
+      if (e.shiftKey && e.code === 'KeyR') return (handled(), store.setRulers(!store.rulers))
+
       switch (k) {
         case 'backspace':
         case 'delete':

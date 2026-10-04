@@ -213,7 +213,7 @@ function animateCamera(target: Camera, ms = 260) {
   anim = requestAnimationFrame(step)
 }
 
-function bounds(ids: string[]): Box | null {
+export function bounds(ids: string[]): Box | null {
   let x1 = Infinity,
     y1 = Infinity,
     x2 = -Infinity,

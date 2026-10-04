@@ -101,6 +101,7 @@ class Store {
   focus: string | null = null
   /** The navigator (⌘\\): project, files and pages over the canvas. */
   navOpen = loadFlag('paperish:navOpen', true)
+  rulers = loadFlag('paperish:rulers', true)
   update: UpdateState | null = null
   /** Design checks of the current page. */
   lint: LintState | null = null
@@ -658,6 +659,16 @@ class Store {
 
     try {
       localStorage.setItem('paperish:navOpen', String(open))
+    } catch {}
+
+    this.emit()
+  }
+
+  setRulers(on: boolean) {
+    this.rulers = on
+
+    try {
+      localStorage.setItem('paperish:rulers', String(on))
     } catch {}
 
     this.emit()
