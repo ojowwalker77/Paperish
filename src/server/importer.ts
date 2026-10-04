@@ -37,7 +37,7 @@ interface XNode {
   fixedSize?: boolean
   text?: string
   src?: string
-  alt?: string
+  alt?: string | null
   svg?: string
   href?: string
   role?: string
@@ -525,7 +525,7 @@ function build(
 
   if (n.role) attrs.role = n.role
 
-  if (n.alt) attrs.alt = n.alt
+  if (n.alt != null) attrs.alt = n.alt
 
   if (n.colSpan) attrs.colspan = String(n.colSpan)
 

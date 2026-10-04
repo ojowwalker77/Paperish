@@ -448,7 +448,7 @@ export default (opts) => {
 
     const url = content.match(/^url\(["']?(.*?)["']?\)$/)
 
-    if (url) return { i: -1, tag: 'img', type: 'Image', src: url[1], styles, children: [] }
+    if (url) return { i: -1, tag: 'img', type: 'Image', src: url[1], alt: '', styles, children: [] }
     const text = parseContentString(content)
 
     if (text === null) return null
@@ -613,7 +613,7 @@ export default (opts) => {
         tag: 'img',
         type: 'Image',
         src,
-        alt: el.alt || '',
+        alt: el.getAttribute('alt'),
         styles: styleOf(cs, parentCS, 'img'),
         sz: sizing(cs),
         fixedSize: true,

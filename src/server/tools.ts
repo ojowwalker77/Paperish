@@ -2105,7 +2105,7 @@ Moves apply in order. In flex parents this changes visual order; moving onto the
 
   tool(
     'lint_design',
-    "Check a page against the repo's DESIGN.md: contrast, type scale, fonts, spacing and corners (measured in the renderer), plus its Do's and Don'ts (judged by Jev when an OpenRouter key is set). Run it before finish_working_on_nodes. fix:true applies the unambiguous fixes first.",
+    "Check a page against the repo's DESIGN.md and WCAG: contrast, tap targets, alt text, heading order, reading order, type scale, fonts, spacing and corners (measured in the renderer), plus its Do's and Don'ts (judged by Jev when an OpenRouter key is set). Run it before finish_working_on_nodes. fix:true applies the unambiguous fixes first.",
     {
       nodeId: z
         .string()

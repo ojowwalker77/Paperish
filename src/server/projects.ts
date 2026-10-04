@@ -326,6 +326,8 @@ export function tokensPath(checkout: string): string | null {
   return isStringValue(rel) && rel ? rel : null
 }
 
+export const wcagLevel = (checkout: string) => (readMarker(checkout).wcag === 'AAA' ? 'AAA' : 'AA')
+
 /** Point the project at a DESIGN.md outside the root (saved in paperish.json, so it's shared). */
 export function setDesignMdPath(checkout: string, file: string) {
   const rel = path.relative(checkout, file)
