@@ -1,0 +1,89 @@
+name: Paperish design diff
+description: Comment before, after and heatmap images of the .paperish artboards a pull request changes.
+branding:
+  icon: image
+  color: gray-dark
+
+inputs:
+  base:
+    description: Revision to compare with.
+    default: ${{ github.event.pull_request.base.sha }}
+  images-branch:
+    description: Branch the images are pushed to, so the comment can show them.
+    default: paperish-design-diffs
+  token:
+    description: Token that pushes the images and writes the comment.
+    default: ${{ github.token }}
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+
+    - name: Build Paperish
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        bun install --frozen-lockfile
+        bunx vite build
+        node node_modules/electron/install.js
+        sudo chown root:root node_modules/electron/dist/chrome-sandbox
+        sudo chmod 4755 node_modules/electron/dist/chrome-sandbox
+        command -v xvfb-run >/dev/null || (sudo apt-get update -q && sudo apt-get install -yq xvfb)
+
+    - name: Render design diffs
+      shell: bash
+      env:
+        NODE_ENV: production
+        OUT: ${{ runner.temp }}/paperish-diff
+        BASE: ${{ inputs.base }}
+        URL: ${{ github.server_url }}/${{ github.repository }}/raw/${{ inputs.images-branch }}/pr-${{ github.event.pull_request.number }}/${{ github.sha }}
+      run: |
+        xvfb-run -a "$GITHUB_ACTION_PATH/node_modules/.bin/electron" "$GITHUB_ACTION_PATH" \
+          diff "$GITHUB_WORKSPACE" --base "$BASE" --head HEAD --out "$OUT" --url "$URL"
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: paperish-design-diff
+        path: ${{ runner.temp }}/paperish-diff
+        if-no-files-found: ignore
+
+    - name: Comment on the pull request
+      if: github.event.pull_request.head.repo.full_name == github.repository
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        OUT: ${{ runner.temp }}/paperish-diff
+        BRANCH: ${{ inputs.images-branch }}
+        REPO: ${{ github.repository }}
+        PR: ${{ github.event.pull_request.number }}
+        SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+        if find "$OUT" -name '*.jpg' | grep -q .; then
+          pub="$RUNNER_TEMP/paperish-publish"
+          for attempt in 1 2 3 4 5; do
+            rm -rf "$pub" && mkdir -p "$pub" && cd "$pub"
+            git init -q
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git remote add origin "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}/${REPO}.git"
+            if git fetch -q --depth 1 origin "$BRANCH"; then
+              git checkout -q -b "$BRANCH" FETCH_HEAD
+            else
+              git checkout -q --orphan "$BRANCH"
+            fi
+            rm -rf "pr-$PR" && mkdir -p "pr-$PR/$SHA" && cp -R "$OUT"/. "pr-$PR/$SHA/"
+            git add -A
+            git diff --cached --quiet || git commit -qm "Design diff for #$PR"
+            git push -q origin "HEAD:$BRANCH" && break
+            sleep $((attempt * 3))
+          done
+        fi
+        id=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+          --jq '.[] | select(.body | startswith("<!-- paperish-design-diff -->")) | .id' | sed -n 1p)
+        if [ -n "$id" ]; then
+          gh api -X PATCH "repos/$REPO/issues/comments/$id" -F "body=@$OUT/summary.md" >/dev/null
+        elif [ "$(jq '.files | length' "$OUT/diff.json")" != 0 ]; then
+          gh api "repos/$REPO/issues/$PR/comments" -F "body=@$OUT/summary.md" >/dev/null
+        fi
