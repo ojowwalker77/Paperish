@@ -1,6 +1,7 @@
 import { toStaticHTML } from '../../shared/html'
 import { artboardOf, pageOf, subtreeIds } from '../../shared/ops'
 import type { Op, PNode, StyleValue } from '../../shared/types'
+import { z } from 'zod'
 import { store, type Camera } from '../store'
 
 // Editor-side actions shared by the canvas, keyboard shortcuts and panels.
@@ -499,6 +500,17 @@ export function copySelection(e: ClipboardEvent) {
 export async function paste(e: ClipboardEvent) {
   const html = e.clipboardData?.getData('text/html') || ''
   const plain = e.clipboardData?.getData('text/plain') || ''
+  const figma = figmaFrames(html)
+
+  if (figma) {
+    e.preventDefault()
+
+    if (figma.length && store.settings?.figma) store.startImport({ t: 'importFigma', urls: figma })
+    else store.setImport('figma', figma[0])
+
+    return
+  }
+
   const source = html || (/^\s*<[a-z!]/i.test(plain) ? plain : '')
 
   if (!source && !plain) return
@@ -520,6 +532,27 @@ export async function paste(e: ClipboardEvent) {
 
   const ids = await store.command({ t: 'insertHtml', parentId: target.id, html: markup, styles })
   store.select(ids)
+}
+
+const figmeta = z.object({ fileKey: z.string(), selectedNodeData: z.string().optional() })
+
+function figmaFrames(html: string): string[] | null {
+  const meta = html.match(/\(figmeta\)([A-Za-z0-9+/=]+)\(\/figmeta\)/)
+
+  if (!meta) return null
+  let data: z.infer<typeof figmeta>
+
+  try {
+    data = figmeta.parse(JSON.parse(atob(meta[1])))
+  } catch {
+    return []
+  }
+
+  return (data.selectedNodeData ?? '')
+    .split(',')
+    .map((entry) => entry.split('|')[0].trim())
+    .filter((id) => /^\d+:\d+$/.test(id))
+    .map((id) => `https://www.figma.com/design/${data.fileKey}/?node-id=${id.replace(':', '-')}`)
 }
 
 function pasteTarget(): PNode {

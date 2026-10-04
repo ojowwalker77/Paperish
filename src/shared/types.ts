@@ -475,7 +475,7 @@ export type ClientMsg =
   | { t: 'duplicate'; ids: string[]; instance?: boolean }
   | { t: 'fork'; id: string }
   | { t: 'importUrl'; url: string; width?: number; token?: string }
-  | { t: 'importFigma'; url: string; token?: string }
+  | { t: 'importFigma'; urls: string[]; token?: string }
   | { t: 'createPage'; name?: string }
   /** Set the OpenRouter key or Figma token; empty removes it. */
   | { t: 'settings'; openRouterKey?: string; figmaToken?: string; theme?: ThemeSetting }

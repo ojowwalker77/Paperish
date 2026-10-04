@@ -132,7 +132,7 @@ function WebPanel() {
 
 function FigmaPanel() {
   const saved = useStore((s) => !!s.settings?.figma)
-  const [url, setUrl] = useState('')
+  const [url, setUrl] = useState(() => store.importPrefill)
   const [token, setToken] = useState('')
   const ready = !!url.trim() && (saved || !!token.trim())
 
@@ -140,7 +140,7 @@ function FigmaPanel() {
     if (!ready) return
 
     if (token.trim()) store.saveSettings({ figmaToken: token.trim() })
-    store.startImport({ t: 'importFigma', url: url.trim() })
+    store.startImport({ t: 'importFigma', urls: [url.trim()] })
   }
 
   return (

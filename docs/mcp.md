@@ -62,7 +62,7 @@ claude mcp add paperish -- /path/to/paperish/node_modules/.bin/electron /path/to
 
 ## Import from Figma
 
-`import_figma` (or ⌘K → Import from Figma…) rebuilds a Figma frame as editable layers. It reads the frame through Figma's REST API with a personal access token that can read file content; the token is saved in Paperish's data folder (or read from `FIGMA_TOKEN`) and never reaches the editor. Paste a link to the frame (right-click → Copy link to selection). `src/server/import/figma.ts` maps the node JSON (typed with `@figma/rest-api-spec`) to HTML and runs it through the same parser as `write_html`:
+`import_figma` (or ⌘K → Import from Figma…) rebuilds a Figma frame as editable layers. It reads the frame through Figma's REST API with a personal access token that can read file content; the token is saved in Paperish's data folder (or read from `FIGMA_TOKEN`) and never reaches the editor. Paste a link to the frame (right-click → Copy link to selection), or copy frames in Figma and press ⌘V in Paperish: the copy carries the file key and the selected frame ids, and each frame is imported as its own artboard. `src/server/import/figma.ts` maps the node JSON (typed with `@figma/rest-api-spec`) to HTML and runs it through the same parser as `write_html`:
 - **Auto layout** becomes flex: direction, gap, padding, alignment and wrap. Fill and hug sizing become `flex: 1`, `align-self: stretch` or no size at all; fixed sizes stay in px.
 - **Absolute children** keep their position and follow their constraints: right, left and right, bottom, and scale (as %).
 - **Text** keeps family, size, weight, line height, letter spacing, case, decoration and alignment. Mixed styles inside one text layer are flattened to the base style.

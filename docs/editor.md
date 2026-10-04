@@ -11,7 +11,7 @@
 | ⌘-click | Select the deepest layer |
 | ⌘D, ⌫, arrows | Duplicate, delete, nudge |
 | ⌘Z / ⇧⌘Z | Undo / redo, shared with the agent |
-| ⌘C / ⌘V | Copy as HTML; paste any HTML to turn it into layers |
+| ⌘C / ⌘V | Copy as HTML; paste any HTML to turn it into layers, or frames copied in Figma to import them |
 | ⌘\ | Hide / show both side panels (each also has a toggle in the top bar) |
 | P | Preview the selected artboard as a full page UI (Fit / 100% / Responsive, ← → between artboards, Esc to close). "Open in new tab" gives a live standalone URL (`/?file=…&view=…`) |
 

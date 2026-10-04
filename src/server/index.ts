@@ -580,9 +580,17 @@ wss.on('connection', (socket) => {
                 console.warn('[paperish] import failed:', (e as Error).message),
             )
           else if (msg.t === 'importFigma')
-            runImport(f, figmaJob(f, { url: msg.url }), 'user', msg.token).catch((e) =>
-              // SAFETY: runImport rejects with Error for failed imports.
-              console.warn('[paperish] import failed:', (e as Error).message),
+            void msg.urls.reduce(
+              (prev, url) =>
+                prev
+                  .then(() => runImport(f, figmaJob(f, { url }), 'user', msg.token))
+                  .then(
+                    () => undefined,
+                    (e) =>
+                      // SAFETY: runImport rejects with Error for failed imports.
+                      console.warn('[paperish] import failed:', (e as Error).message),
+                  ),
+              Promise.resolve(),
             )
           else if (msg.t === 'lint') sendLint(f)
           else if (msg.t === 'pickDesignMd') {
