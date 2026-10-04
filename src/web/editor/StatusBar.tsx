@@ -342,6 +342,8 @@ const SHORTCUTS: [string, string][] = [
   ['Space drag', 'Pan'],
   ['⌘ scroll', 'Zoom'],
   ['⇧1  ⇧2', 'Fit all, fit selection'],
+  ['⇧R', 'Rulers'],
+  ['⌃ drag', 'Move without snapping'],
   ['Enter  Esc', 'Into children, to parent'],
   ['⌘ click', 'Select deepest'],
   ['⌘D  ⌫', 'Duplicate, delete'],

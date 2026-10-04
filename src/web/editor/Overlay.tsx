@@ -3,6 +3,7 @@ import { shallow, useStore } from '../store'
 import { boardReach, boardRect, type Box } from './actions'
 import { CommentPins } from './Comments'
 import { intersects, useView, useWorldRects, type View } from './measure'
+import type { Guide } from './snap'
 
 // Screen-space chrome drawn above the canvas: artboard labels, agent working
 // indicators, hover and selection outlines. Items carry world rects
@@ -13,10 +14,12 @@ import { intersects, useView, useWorldRects, type View } from './measure'
 export function Overlay({
   marquee,
   draft,
+  guides,
   panRef,
 }: {
   marquee: Box | null
   draft: Box | null
+  guides: Guide[]
   panRef: Ref<HTMLDivElement>
 }) {
   const selection = useStore((s) => s.selection)
@@ -62,6 +65,13 @@ export function Overlay({
 
         {marquee && <div className="pw-ob pw-marquee" style={vars(marquee)} />}
         {draft && <div className="pw-ob pw-draft" style={vars(draft)} />}
+        {guides.map((g) => (
+          <div
+            key={`${g.x1},${g.y1},${g.x2},${g.y2}`}
+            className="pw-ob pw-guide"
+            style={vars({ x: g.x1, y: g.y1, width: g.x2 - g.x1, height: g.y2 - g.y1 })}
+          />
+        ))}
         <CommentPins />
       </div>
     </div>

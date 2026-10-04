@@ -108,6 +108,7 @@ function useItems(): Item[] {
   const info = useStore((s) => s.projectInfo)
   const inGit = useStore((s) => !!s.repo?.root)
   const selection = useStore((s) => s.selection)
+  const rulers = useStore((s) => s.rulers)
 
   return useMemo(() => {
     const out: Item[] = []
@@ -120,6 +121,7 @@ function useItems(): Item[] {
     ) => out.push({ key: `a:${label}`, label, hint, kind: 'Action', icon, run })
 
     act('Zoom to fit', () => zoomToFit(), '⇧1')
+    act(rulers ? 'Hide rulers' : 'Show rulers', () => store.setRulers(!rulers), '⇧R')
 
     if (selection.length) {
       act('Zoom to selection', () => zoomToFit(selection), '⇧2')
@@ -243,7 +245,7 @@ function useItems(): Item[] {
       })
 
     return out
-  }, [doc, pageId, files, view, checkouts, branches, project, info, inGit, selection])
+  }, [doc, pageId, files, view, checkouts, branches, project, info, inGit, selection, rulers])
 }
 
 /** Best matches first: whole-label prefix, then word starts, then substrings, then letters in order. Empty query: actions and artboards. */
