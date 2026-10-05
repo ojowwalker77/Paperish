@@ -619,46 +619,28 @@ html.engine body {
   z-index: 1;
 }
 
-/* The navigator: project, files and the open file's pages, floating over the canvas. */
+/* The navigator: project, files and the open file's pages, docked left of the canvas. */
 .pw-nav {
-  position: absolute;
-  z-index: 40;
-  left: 10px;
-  top: 10px;
-  bottom: 10px;
-  width: 260px;
+  flex-shrink: 0;
+  width: 240px;
   display: flex;
   flex-direction: column;
-  padding: 6px;
-  border-radius: 12px;
-  background: var(--solid);
-  box-shadow: var(--float);
-  animation: pw-fade 0.15s var(--ease);
+  padding: 8px 6px 6px;
+  border-right: 1px solid var(--hairline);
+  background: var(--bg);
 }
 .pw-nav-project {
   width: 100%;
+  height: 40px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 8px;
-  border-radius: 8px;
+  gap: 6px;
+  padding: 0 8px;
+  border-radius: 6px;
   text-align: left;
-  background: var(--hover);
 }
 .pw-nav-project:hover {
-  background: var(--active);
-}
-.pw-nav-mark {
-  width: 24px;
-  height: 24px;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--accent-soft);
-  flex-shrink: 0;
+  background: var(--hover);
 }
 .pw-nav-project-text {
   flex: 1;
@@ -669,7 +651,7 @@ html.engine body {
 }
 .pw-nav-project-text strong {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .pw-nav-project-text span {
   display: flex;
@@ -689,7 +671,7 @@ html.engine body {
   scrollbar-width: thin;
 }
 .pw-nav-head {
-  height: 26px;
+  height: 24px;
   display: flex;
   align-items: center;
   padding: 0 4px 0 8px;
@@ -698,8 +680,8 @@ html.engine body {
   color: var(--faint);
 }
 .pw-nav-add {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   margin-left: auto;
   display: grid;
   place-items: center;
@@ -712,12 +694,12 @@ html.engine body {
 }
 .pw-nav-row {
   width: 100%;
-  min-height: 30px;
+  min-height: 26px;
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 0 8px;
-  border-radius: 7px;
+  border-radius: 6px;
   text-align: left;
   color: var(--text);
 }
@@ -735,21 +717,26 @@ html.engine body {
 }
 .pw-nav-row.open {
   padding-left: 8px;
-  font-weight: 600;
+  font-weight: 500;
 }
 .pw-nav-row .pw-file-open {
-  padding: 7px 8px;
+  padding: 5px 8px;
   gap: 6px;
+}
+.pw-nav-row .pw-file-trash {
+  width: 22px;
+  height: 22px;
+  margin-right: 2px;
 }
 .pw-nav-page,
 .pw-nav-page.pw-file-row .pw-file-open {
-  padding-left: 22px;
+  padding-left: 20px;
 }
 .pw-nav-page.pw-file-row {
   padding-left: 0;
 }
 .pw-nav-row.faint {
-  color: var(--muted);
+  color: var(--faint);
 }
 .pw-nav-twisty {
   width: 12px;
@@ -763,12 +750,12 @@ html.engine body {
 .pw-nav-views {
   display: flex;
   flex-direction: column;
-  margin: 1px 0 2px 27px;
-  padding-left: 6px;
+  margin: 0 0 2px 25px;
+  padding-left: 4px;
   border-left: 1px solid var(--hairline);
 }
 .pw-nav-view {
-  min-height: 28px;
+  min-height: 24px;
   color: var(--muted);
 }
 .pw-nav-view.active {
@@ -2117,9 +2104,6 @@ a.pw-path:hover {
   box-shadow: var(--float);
   animation: pw-fade 0.15s var(--ease);
 }
-.pw-dock.nav {
-  left: calc(50% + 135px);
-}
 .pw-dock > kbd {
   width: 20px;
   text-align: center;
@@ -2262,9 +2246,7 @@ a.pw-path:hover {
 }
 .pw-rulers {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   z-index: 2;
   pointer-events: none;
 }

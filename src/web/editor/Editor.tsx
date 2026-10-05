@@ -49,12 +49,11 @@ export function Editor() {
       {/* The title bar holds the toolbar; everything else lives in the stage below it. */}
       <Topbar />
       <div className="pw-stage">
-        {/* No sidebars: the canvas is the stage. ⌘K finds things, I inspects, the status bar has the rest. */}
+        <Navigator />
         <main className="pw-main">
           <Canvas />
           {!loaded && <div className="pw-loading">Connecting…</div>}
         </main>
-        <Navigator />
         <Inspector />
         <LintCard />
         <StepsCard />

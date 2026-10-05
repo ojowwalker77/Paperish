@@ -23,12 +23,11 @@ export function VersionDock() {
   const versions = useStore((s) => viewOf(s.focus)?.versions ?? [], shallow)
   const branches = useStore((s) => branchPoints(viewOf(s.focus)), shallow)
   const why = useStore((s) => s.node(s.focus)?.fork?.why)
-  const nav = useStore((s) => s.navOpen)
 
   if (!focus || picking) return null
 
   return (
-    <div className={`pw-dock ${nav ? 'nav' : ''}`} role="toolbar" aria-label="Versions">
+    <div className="pw-dock" role="toolbar" aria-label="Versions">
       {why && <div className="pw-dock-why">{why}</div>}
       <kbd>[</kbd>
       {versions.map((id, i) => (
