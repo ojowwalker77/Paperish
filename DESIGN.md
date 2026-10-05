@@ -133,7 +133,7 @@ Floating sheets use 12px corners, a hairline ring and one soft shadow (`0 10px 3
 
 ## Components
 
-- **Sheet**: the surface every floating panel sits on. White (`#252525` in dark), 12px corners, hairline ring, soft shadow.
+- **Sheet**: White (`#252525` in dark), 12px corners, hairline ring, soft shadow.
 - **Control**: 28px, muted text that turns to full text color with a hover wash. No borders.
 - **Primary button**: filled with the text color, at most one per surface.
 - **Input**: a faint ink wash at rest; white with an accent focus ring when focused.
