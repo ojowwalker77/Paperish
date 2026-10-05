@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
+import { artboardOf } from '../../shared/ops'
 import { store, useStore } from '../store'
+import { boardRect, bounds } from './actions'
 
 const SIZE = 16
 
@@ -16,8 +18,12 @@ export function Rulers() {
     let ink = ''
 
     const paint = () => {
-      paintRuler(x, 'x', ink)
-      paintRuler(y, 'y', ink)
+      const first = store.doc && store.selection[0]
+      const board = first ? artboardOf(store.doc!.nodes, first) : undefined
+      const base = (board && boardRect(board.id)) || { x: 0, y: 0 }
+      const span = bounds(store.selection)
+      paintRuler(x, 'x', ink, base.x, span && [span.x, span.width])
+      paintRuler(y, 'y', ink, base.y, span && [span.y, span.height])
     }
 
     const restyle = () => {
@@ -30,11 +36,13 @@ export function Rulers() {
     ro.observe(y)
     dark.addEventListener('change', restyle)
     restyle()
-    const off = store.subscribeCamera(paint)
+    const offCamera = store.subscribeCamera(paint)
+    const off = store.subscribe(() => requestAnimationFrame(paint))
 
     return () => {
       ro.disconnect()
       dark.removeEventListener('change', restyle)
+      offCamera()
       off()
     }
   }, [on])
@@ -50,7 +58,13 @@ export function Rulers() {
   )
 }
 
-function paintRuler(cv: HTMLCanvasElement, axis: 'x' | 'y', ink: string) {
+function paintRuler(
+  cv: HTMLCanvasElement,
+  axis: 'x' | 'y',
+  ink: string,
+  base: number,
+  span: [number, number] | null,
+) {
   const dpr = devicePixelRatio
   const length = axis === 'x' ? cv.clientWidth : cv.clientHeight
   const w = Math.round((axis === 'x' ? length : SIZE) * dpr)
@@ -75,16 +89,24 @@ function paintRuler(cv: HTMLCanvasElement, axis: 'x' | 'y', ink: string) {
   const step = lead * p
   const parts = lead === 2 ? 4 : 5
   const minor = step / parts
-  const to = (length - origin) / c.zoom
+  const to = (length - origin) / c.zoom - base
 
   ctx.fillStyle = ink
+
+  if (span) {
+    const a = origin + span[0] * c.zoom
+    const b = a + span[1] * c.zoom
+    ctx.globalAlpha = 0.12
+    ctx.fillRect(axis === 'x' ? a : length - b, 0, b - a, SIZE)
+  }
+
   ctx.font = '9px Inter, system-ui, sans-serif'
   ctx.textBaseline = 'top'
   ctx.textAlign = axis === 'x' ? 'left' : 'right'
 
-  for (let i = Math.floor(-origin / c.zoom / minor); i * minor <= to; i++) {
+  for (let i = Math.floor((-origin / c.zoom - base) / minor); i * minor <= to; i++) {
     const v = i * minor
-    const at = origin + v * c.zoom
+    const at = origin + (base + v) * c.zoom
     const s = Math.round(axis === 'x' ? at : length - at) + 0.5
     const major = i % parts === 0
 
