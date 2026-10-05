@@ -3176,8 +3176,12 @@ button.pw-status-item:hover,
   font-weight: 500;
 }
 .pw-status-offer .pw-status-link {
+  margin-left: 6px;
   color: var(--text);
   font-weight: 500;
+}
+.pw-status-offer .pw-status-link:hover {
+  text-decoration: underline;
 }
 .pw-status-offer button:hover svg {
   color: var(--text);

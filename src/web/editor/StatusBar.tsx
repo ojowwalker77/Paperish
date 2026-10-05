@@ -69,16 +69,32 @@ function AgentActivity() {
   )
 }
 
+const WORKFLOW = '.github/workflows/paperish-design-diff.yml'
+
 function DesignDiffsOffer() {
   const offer = useStore((s) => s.designDiffs)
+  const view = useStore((s) => s.view)
+  const editor = useStore((s) => s.settings?.editor)
   const [added, setAdded] = useState(false)
 
-  if (added)
+  if (added && view?.kind === 'checkout')
     return (
-      <span className="pw-status-item pw-status-offer">
-        <span>
-          Added <code>.github/workflows/paperish-design-diff.yml</code>. Commit it to turn it on.
-        </span>
+      <span className="pw-status-item pw-status-offer" title={`${view.path}/${WORKFLOW}`}>
+        Commit the new workflow
+        {view.branch && (
+          <>
+            {' '}
+            on <code>{view.branch}</code>
+          </>
+        )}
+        {editor && (
+          <button
+            className="pw-status-link"
+            onClick={() => store.send({ t: 'openInEditor', file: WORKFLOW })}
+          >
+            Open in {editor}
+          </button>
+        )}
         <button title="Dismiss" onClick={() => setAdded(false)}>
           <Icon.Close size={12} />
         </button>
@@ -89,15 +105,16 @@ function DesignDiffsOffer() {
 
   return (
     <span className="pw-status-item pw-status-offer">
-      Want design diffs on your pull requests?
+      Design diffs on pull requests?
       <button
         className="pw-status-link"
+        title={`Adds ${WORKFLOW}, a GitHub Action that comments before and after images on pull requests`}
         onClick={() => {
           store.send({ t: 'designDiffs', setup: true })
           setAdded(true)
         }}
       >
-        Set up GitHub Action
+        Set up
       </button>
       <button title="Dismiss" onClick={() => store.send({ t: 'designDiffs', setup: false })}>
         <Icon.Close size={12} />

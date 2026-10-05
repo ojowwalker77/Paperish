@@ -331,6 +331,8 @@ export interface SettingsState {
   openRouter: boolean
   figma: boolean
   theme: ThemeSetting
+  /** The code editor files open in, found among those installed. */
+  editor: string | null
 }
 
 export type ThemeSetting = 'system' | 'light' | 'dark'
@@ -504,6 +506,8 @@ export type ClientMsg =
   | { t: 'knob'; knobsId: string; name: string; value: string }
   | { t: 'knobsDone'; knobsId: string }
   | { t: 'designDiffs'; setup: boolean }
+  /** Open a file of the current checkout, by its path in it, in the code editor. */
+  | { t: 'openInEditor'; file: string }
 
 export type ServerMsg =
   | { t: 'doc'; doc: Doc; version: number; pageId: string }
