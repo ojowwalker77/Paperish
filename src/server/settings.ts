@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { SettingsState, ThemeSetting } from '../shared/types'
 import { DATA_DIR } from './config'
+import { editorName } from './editors'
 import { call } from './host'
 
 // App-wide settings, kept in the data folder next to the project list. The
@@ -42,7 +43,12 @@ function theme(): ThemeSetting {
 }
 
 export function settingsState(): SettingsState {
-  return { openRouter: !!openRouterKey(), figma: !!figmaToken(), theme: theme() }
+  return {
+    openRouter: !!openRouterKey(),
+    figma: !!figmaToken(),
+    theme: theme(),
+    editor: editorName(),
+  }
 }
 
 export function updateSettings(patch: {

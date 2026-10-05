@@ -48,6 +48,7 @@ import { figmaJob } from './import/figma'
 import { paperJob } from './import/paper'
 import { runImport } from './tasks'
 import { writeWorkflow } from './workflow'
+import { openInEditor } from './editors'
 import { newPage, Workspace, type Client, type OpenFile } from './workspace'
 
 const workspace = new Workspace()
@@ -628,6 +629,8 @@ wss.on('connection', (socket) => {
             if (!msg.setup) workspace.projects.dismissDesignDiffs(workspace.project(f.projectId))
             else if (f.checkout) writeWorkflow(f.checkout)
             workspace.filesChanged(f.projectId)
+          } else if (msg.t === 'openInEditor') {
+            if (f.checkout) openInEditor(f.checkout, msg.file)
           } else if (msg.t === 'comment:create')
             personFor(f)
               .then((me) => {
