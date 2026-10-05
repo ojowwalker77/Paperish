@@ -8,7 +8,7 @@ import { InlineInput } from './InlineInput'
 import { timeAgo, useOutside } from './Topbar'
 import { focusBoard, unfocus } from './views'
 
-// Where you are, as one tree over the canvas (⌘\): the project and its branch
+// Where you are, as one tree beside the canvas (⌘\): the project and its branch
 // on top, then its files, the open one with its pages as folders of views.
 
 export function Navigator() {
@@ -63,7 +63,6 @@ function ProjectSwitcher() {
           setOpen(!open)
         }}
       >
-        <span className="pw-nav-mark">{info.name.slice(0, 1).toUpperCase()}</span>
         <span className="pw-nav-project-text">
           <strong>{info.name}</strong>
           <span>

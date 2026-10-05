@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Paperish
-description: A calm design canvas for software engineers and their agents. The canvas is the whole window; chrome floats over it as quiet, neutral sheets.
+description: A calm design canvas for software engineers and their agents. A plain navigator docks on the left; the canvas fills the rest and panels float over it as quiet, neutral sheets.
 colors:
   bg: "#f5f5f5"
   frame: "#eaeaea"
@@ -103,7 +103,7 @@ components:
 
 Paperish is a tool, not a showcase. The designs on the canvas are the only thing on screen that should draw the eye; everything Paperish adds is a gallery wall around them. It is built for software engineers, so it reads like a good editor: dense but unhurried, keyboard first, with nothing that blinks or begs for attention.
 
-There are no sidebars. The canvas fills the window, and panels (inspector, command palette, issues, the pick bar) float over it as sheets that appear on demand and go away when done.
+The navigator (project, files, pages) is the one sidebar: docked flush on the left, separated from the canvas by a hairline, with no card, corners or shadow. `⌘\` hides it. The canvas fills the rest, and panels (inspector, command palette, issues, the pick bar) float over it as sheets that appear on demand and go away when done.
 
 ## Colors
 
@@ -145,7 +145,7 @@ Floating sheets use 12px corners, a hairline ring and one soft shadow (`0 10px 3
 - Do use the accent only for selection, focus and links, never for decoration.
 - Do reserve orange for agent activity.
 - Do separate surfaces with hairlines and whitespace instead of solid borders.
-- Do float panels over the canvas as sheets instead of docking sidebars.
+- Do float transient panels over the canvas as sheets; only the navigator docks.
 - Do give every color a dark-mode value.
 - Do show the keyboard shortcut next to an action when it has one.
 - Do write labels in sentence case, short and plain.

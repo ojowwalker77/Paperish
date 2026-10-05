@@ -116,23 +116,19 @@ export function viewportSize() {
   return { width: r?.width ?? 1000, height: r?.height ?? 800 }
 }
 
-/** The part of the viewport to fit content into (panels are docked beside it, so all of it, less a margin). */
-/** The canvas minus what floats over it: the navigator on the left, the version dock below. */
+/** The canvas minus what floats over it: the version dock below. */
 function visibleArea() {
   const vp = viewportSize()
   const m = 16
-  const left = store.navOpen ? NAV_WIDTH : 0
   const bottom = store.focus ? DOCK_HEIGHT : 0
 
   return {
-    x: m + left,
+    x: m,
     y: m,
-    width: Math.max(200, vp.width - 2 * m - left),
+    width: Math.max(200, vp.width - 2 * m),
     height: Math.max(200, vp.height - 2 * m - bottom),
   }
 }
-
-const NAV_WIDTH = 270
 
 const DOCK_HEIGHT = 120
 

@@ -5,7 +5,6 @@ const SIZE = 16
 
 export function Rulers() {
   const on = useStore((s) => s.rulers)
-  const inset = useStore((s) => (s.navOpen ? 270 : 0))
   const top = useRef<HTMLCanvasElement>(null)
   const left = useRef<HTMLCanvasElement>(null)
 
@@ -17,8 +16,8 @@ export function Rulers() {
     let ink = ''
 
     const paint = () => {
-      paintRuler(x, 'x', inset, ink)
-      paintRuler(y, 'y', 0, ink)
+      paintRuler(x, 'x', ink)
+      paintRuler(y, 'y', ink)
     }
 
     const restyle = () => {
@@ -38,12 +37,12 @@ export function Rulers() {
       dark.removeEventListener('change', restyle)
       off()
     }
-  }, [on, inset])
+  }, [on])
 
   if (!on) return null
 
   return (
-    <div className="pw-rulers" style={{ left: inset }}>
+    <div className="pw-rulers">
       <canvas className="pw-ruler x" ref={top} />
       <canvas className="pw-ruler y" ref={left} />
       <div className="pw-ruler-corner" />
@@ -51,7 +50,7 @@ export function Rulers() {
   )
 }
 
-function paintRuler(cv: HTMLCanvasElement, axis: 'x' | 'y', inset: number, ink: string) {
+function paintRuler(cv: HTMLCanvasElement, axis: 'x' | 'y', ink: string) {
   const dpr = devicePixelRatio
   const length = axis === 'x' ? cv.clientWidth : cv.clientHeight
   const w = Math.round((axis === 'x' ? length : SIZE) * dpr)
@@ -69,7 +68,7 @@ function paintRuler(cv: HTMLCanvasElement, axis: 'x' | 'y', inset: number, ink: 
   if (axis === 'y') ctx.setTransform(0, -dpr, dpr, 0, 0, h)
 
   const c = store.camera
-  const origin = (axis === 'x' ? c.x : c.y) - inset
+  const origin = axis === 'x' ? c.x : c.y
   const raw = 64 / c.zoom
   const p = 10 ** Math.floor(Math.log10(raw))
   const lead = [1, 2, 5, 10].find((m) => m * p >= raw)!
