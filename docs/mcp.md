@@ -75,6 +75,7 @@ claude mcp add paperish -- /path/to/paperish/node_modules/.bin/electron /path/to
 - Aliases (`{color.brand.500}`) become `var(--color-brand-500)`.
 - Figma scopes (`com.figma.scopes`) pick the token type: corner radius, gap, font size and so on. Otherwise the type comes from the name, and plain numbers default to spacing.
 - Only a collection's default mode is imported. Tokens whose name already exists are left alone.
+- Themes: a token value written as `light-dark(day, night)`, or a `name` / `name-dark` pair, follows the canvas light/dark switch (⇧D), so one artboard carries both themes instead of a duplicated pair.
 
 ## Import from Paper
 

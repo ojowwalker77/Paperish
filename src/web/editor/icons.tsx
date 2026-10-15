@@ -181,6 +181,16 @@ export const Icon = {
       </>,
     ),
   Play: ({ size = 14 }: P) => svg(size, <path d="M5 3.5v9l7.5-4.5z" />),
+  Sun: ({ size = 16 }: P) =>
+    svg(
+      size,
+      <>
+        <circle cx="8" cy="8" r="3.1" />
+        <path d="M8 1.6v1.4M8 13v1.4M1.6 8H3M13 8h1.4M3.5 3.5l1 1M11.5 11.5l1 1M12.5 3.5l-1 1M4.5 11.5l-1 1" />
+      </>,
+    ),
+  Moon: ({ size = 16 }: P) =>
+    svg(size, <path d="M13.2 9.7A5.6 5.6 0 0 1 6.3 2.8a5.6 5.6 0 1 0 6.9 6.9Z" />),
   Close: ({ size = 16 }: P) => svg(size, <path d="m4 4 8 8M12 4l-8 8" />),
   Check: ({ size = 14 }: P) => svg(size, <path d="m3.5 8.5 3 3 6-7" />),
   Comment: ({ size = 14 }: P) =>

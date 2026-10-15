@@ -115,7 +115,7 @@ Chrome is neutral grey with no tint. Three colors carry meaning, and each has on
 
 Separation comes from hairlines: black at 6% (10% for stronger edges) on light, white at 8% (14%) on dark. Hover and pressed states are the same ink at 3.5% and 6%.
 
-Paperish follows the system appearance. Every chrome color has a dark value (the `-dark` tokens); designs on the canvas keep their own colors in both modes.
+Paperish's chrome follows the system appearance. Every chrome color has a dark value (the `-dark` tokens). Designs keep their own colors: the canvas renders them in light or dark on its own switch (⇧D), and a design carries both themes in its tokens — a value written as `light-dark(day, night)`, or a `name` / `name-dark` pair — so one artboard covers the two themes.
 
 ## Typography
 

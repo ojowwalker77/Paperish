@@ -167,6 +167,8 @@ function useShortcuts() {
 
       if (e.shiftKey && e.code === 'KeyR') return (handled(), store.setRulers(!store.rulers))
 
+      if (e.shiftKey && e.code === 'KeyD') return (handled(), store.toggleDesignTheme())
+
       switch (k) {
         case 'backspace':
         case 'delete':

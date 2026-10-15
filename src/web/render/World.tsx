@@ -1,19 +1,24 @@
 import { memo, useMemo, type CSSProperties, type ReactNode } from 'react'
 import { fontFaceCss } from '../../shared/fontfaces'
 import { canvasResetCss } from '../../shared/reset'
-import { useStore } from '../store'
+import { useStore, type DesignTheme } from '../store'
 import { NodeView } from './NodeView'
 
 const RESET = canvasResetCss('.pw-design')
+
+const DARK_SUFFIX = '-dark'
 
 /** Everything a design needs to render: the UA reset, token variables and fonts. */
 export function DesignScope({
   style,
   className,
+  theme,
   children,
 }: {
   style?: CSSProperties
   className?: string
+  /** The canvas carries the design theme; the engine and preview stay in light. */
+  theme?: DesignTheme
   children: ReactNode
 }) {
   const tokens = useStore((s) => s.doc?.tokens)
@@ -25,11 +30,22 @@ export function DesignScope({
 
     for (const t of tokens ?? []) v[t.name] = String(t.value)
 
+    if (theme === 'dark')
+      for (const t of tokens ?? []) {
+        const base = t.name.slice(0, -DARK_SUFFIX.length)
+
+        if (t.name.endsWith(DARK_SUFFIX) && base in v) v[base] = String(t.value)
+      }
+
     return v
-  }, [tokens])
+  }, [tokens, theme])
 
   return (
-    <div className={`pw-design ${className ?? ''}`} style={{ ...vars, ...style }}>
+    <div
+      className={`pw-design ${className ?? ''}`}
+      data-theme={theme}
+      style={{ ...vars, ...style }}
+    >
       <style>{RESET}</style>
       {faceCss && <style>{faceCss}</style>}
       {children}
