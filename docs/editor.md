@@ -6,6 +6,7 @@
 | Space + drag, scroll | Pan |
 | ⌘ + scroll, pinch | Zoom |
 | ⇧1 / ⇧2 | Fit all / fit selection |
+| ⇧D | Light / dark theme for the designs on the canvas |
 | Double-click | Drill into a layer; on text, edit it |
 | Enter / Esc | Select children / parent |
 | ⌘-click | Select the deepest layer |
@@ -14,6 +15,8 @@
 | ⌘C / ⌘V | Copy as HTML; paste any HTML to turn it into layers, or frames copied in Figma to import them |
 | ⌘\ | Hide / show both side panels (each also has a toggle in the top bar) |
 | P | Preview the selected artboard as a full page UI (Fit / 100% / Responsive, ← → between artboards, Esc to close). "Open in new tab" gives a live standalone URL (`/?file=…&view=…`) |
+
+**Themes.** The canvas renders the designs in light or dark, independent of the app's own appearance: `⇧D`, or the sun/moon button in the top bar. A design carries both themes in its tokens — a value written as `light-dark(day, night)`, or a `name` / `name-dark` pair, follows the switch — so one artboard covers the two themes instead of a duplicated pair. The preview and the layout engine stay in light.
 
 **Device previews.** Responsive mode can render the frame inside a phone shell at that device's CSS viewport, so layouts reflow as they would on the phone:
 

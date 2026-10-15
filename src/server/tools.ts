@@ -1712,6 +1712,7 @@ Reuse existing layers with <x-paper-clone node-id="ID" style="overrides" /> inst
 
 HTML/CSS rules:
 - Inline styles (style="...") or Tailwind classes (class="flex gap-4 p-6 bg-white"). Classes are compiled to inline styles — with the linked codebase's Tailwind theme when there is one. Responsive variants (sm:/md:/lg:) apply by the artboard's width; hover:/focus:/dark: can't be inlined and are skipped. Tokens are available as var(--token-name).
+- Themes: write colour tokens as light-dark(day, night) (or a name / name-dark pair) and use var(--name); the canvas switch (⇧D) renders the other theme. Don't duplicate an artboard for light and dark.
 - Layout with flex, padding and gap. Grid also renders (real CSS) but flex is easier to edit. Avoid margin.
 - Assume box-sizing: border-box. UA styles are reset (headings don't have default size/margins).
 - Any Google Font or locally installed font works in font-family.

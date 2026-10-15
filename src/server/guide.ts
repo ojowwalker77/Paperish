@@ -5,6 +5,7 @@ Start with get_basic_info (artboards, sizes, fonts, tokens) and get_selection (w
 Core rules:
 - Build incrementally: one visual group per write_html call (a header, a row, a card). The user sees each write land.
 - Inline styles only (style="..."), flexbox + padding + gap for layout, layer-name="..." to name layers.
+- Light and dark come from one artboard's tokens, not duplicates: see the themes rule.
 - Verify with get_screenshot after each meaningful section, and fix what you see.
 - Reuse instead of re-writing: for anything repeated (cards, rows, nav items), build one, create_component it, then create_instance the rest and override their text with set_text_content. Otherwise duplicate_nodes + set_text_content/update_styles, or <x-paper-clone node-id="..."/> inside write_html.
 - Call get_font_family_info before your first typography decisions.
@@ -38,6 +39,7 @@ Share the brief with the user in a sentence or two, then build.
 - write_html(targetNodeId, mode:"insert-children") adds children; mode:"replace" swaps a node for new markup.
 - One visual group per call. A card: container first, then each row, then the footer.
 - Tailwind classes work too (class="flex items-center gap-3 rounded-xl bg-white p-6 shadow-sm"): they're compiled to inline styles, using the linked codebase's theme when there is one. sm:/md:/lg: variants apply by artboard width; hover:/focus:/dark: and child-targeting utilities (space-y-*, divide-*) are skipped — use gap instead.
+- Themes: one artboard carries both. Give its colours token values written as light-dark(day, night) (or a name / name-dark pair) and refer to them as var(--name); the canvas switch (⇧D) renders the other one. Never build a second light or dark artboard.
 - Layout: display:flex with gap and padding. Use flexShrink:0 on fixed-size items (icons, avatars, trailing buttons) so rows align. Grid works (real CSS) but flex is easier for the user to edit.
 - Size text containers with width/flex rather than fixed heights; let text wrap.
 - Text: one style per Text node (rich text is flattened). Use <pre> or white-space:pre for code.
@@ -84,7 +86,7 @@ When matching a reference (a live site, a screenshot, or a previous version), us
 ## 8. Quality bar
 - Prefer restraint: one accent color, generous whitespace, strong type hierarchy.
 - Real content, never lorem ipsum. Call find_sample_data with what the screen shows ("invoice", "User") and use the repo's fixtures, seeds, mocks and Storybook args; with only types, fill their fields with plausible values. With nothing, invent specific names, numbers and dates.
-- Light mode unless asked otherwise.
+- Design in the theme asked for; when a screen needs both, use theme tokens (section 3) instead of a second artboard.
 - Small text (≤12px) needs extra contrast and some letter-spacing.
 
 ## 9. Typography units

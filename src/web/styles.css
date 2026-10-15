@@ -1894,9 +1894,13 @@ a.pw-path:hover {
   left: 0;
   top: 0;
 }
-/* Designs render as themselves, whatever the editor's appearance. */
+/* Designs render as themselves, whatever the editor's appearance. The canvas
+   sets data-theme; light-dark() values and form controls follow it. */
 .pw-design {
   color-scheme: light;
+}
+.pw-design[data-theme='dark'] {
+  color-scheme: dark;
 }
 /* Artboards barely touch the ground. */
 .pw-canvas .pw-world > [data-pid] {

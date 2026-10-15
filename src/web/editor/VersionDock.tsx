@@ -52,6 +52,7 @@ export function VersionDock() {
 }
 
 function Version({ id, on, from }: { id: string; on: boolean; from?: string }) {
+  const theme = useStore((s) => s.designTheme)
   const name = useStore((s) => s.node(id)?.name ?? '')
   const why = useStore((s) => s.node(id)?.fork?.why)
   const parent = useStore((s) => (from ? s.node(from)?.name : undefined))
@@ -70,7 +71,7 @@ function Version({ id, on, from }: { id: string; on: boolean; from?: string }) {
       onClick={() => focusBoard(id)}
     >
       <span className="pw-dock-thumb" style={{ width: THUMB_W, height: THUMB_H }} inert>
-        <DesignScope style={inner}>
+        <DesignScope style={inner} theme={theme}>
           <NodeView id={id} override={OFF_CANVAS} />
         </DesignScope>
       </span>

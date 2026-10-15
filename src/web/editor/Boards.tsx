@@ -19,6 +19,7 @@ export const Boards = memo(function Boards() {
   const sizes = useStore((s) => s.boardSizes)
   const pinned = useStore(pinnedBoards, shallow)
   const view = useDeferredValue(useView())
+  const theme = useStore((s) => s.designTheme)
   useStore((s) => s.doc)
 
   const keep = new Set(pinned)
@@ -61,7 +62,7 @@ export const Boards = memo(function Boards() {
   })
 
   return (
-    <DesignScope className="pw-world">
+    <DesignScope className="pw-world" theme={theme}>
       {shown.map((id) => (
         <NodeView key={id} id={id} top />
       ))}

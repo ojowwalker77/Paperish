@@ -36,6 +36,8 @@ export type Tool = 'move' | 'frame' | 'text' | 'hand' | 'comment'
 
 export type PreviewMode = 'fit' | 'actual' | 'responsive'
 
+export type DesignTheme = 'light' | 'dark'
+
 export type ImportSource = 'url' | 'figma' | 'paper'
 
 interface DevicePrefs {
@@ -108,6 +110,8 @@ class Store {
   /** The navigator (⌘\\): project, files and pages over the canvas. */
   navOpen = loadFlag('paperish:navOpen', true)
   rulers = loadFlag('paperish:rulers', true)
+  /** The theme the designs on the canvas render in, independent of the chrome. */
+  designTheme = loadDesignTheme()
   update: UpdateState | null = null
   /** Design checks of the current page. */
   lint: LintState | null = null
@@ -732,6 +736,21 @@ class Store {
     this.emit()
   }
 
+  setDesignTheme(theme: DesignTheme) {
+    if (this.designTheme === theme) return
+    this.designTheme = theme
+
+    try {
+      localStorage.setItem('paperish:designTheme', theme)
+    } catch {}
+
+    this.emit()
+  }
+
+  toggleDesignTheme() {
+    this.setDesignTheme(this.designTheme === 'dark' ? 'light' : 'dark')
+  }
+
   setFocus(id: string | null) {
     this.focus = id
     this.selection = this.selection.filter((s) => !id || artboardOf(this.doc!.nodes, s)?.id === id)
@@ -817,6 +836,16 @@ function loadFlag(key: string, fallback: boolean): boolean {
   } catch {}
 
   return fallback
+}
+
+function loadDesignTheme(): DesignTheme {
+  try {
+    const saved = localStorage.getItem('paperish:designTheme')
+
+    if (saved === 'light' || saved === 'dark') return saved
+  } catch {}
+
+  return 'light'
 }
 
 function loadPreviewMode(): PreviewMode {

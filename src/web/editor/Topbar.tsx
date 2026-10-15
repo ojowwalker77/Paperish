@@ -43,6 +43,7 @@ export function Topbar() {
 
       <div className="pw-topbar-right">
         <UpdateButton />
+        <ThemeToggle />
         <div className="pw-tools" role="toolbar" aria-label="Tools">
           {TOOLS.map((t) => (
             <button
@@ -66,6 +67,22 @@ export function Topbar() {
         </button>
       </div>
     </header>
+  )
+}
+
+/** Quick light / dark switch for the designs on the canvas (⇧D). */
+function ThemeToggle() {
+  const dark = useStore((s) => s.designTheme) === 'dark'
+
+  return (
+    <button
+      className={`pw-icon-btn ${dark ? 'on' : ''}`}
+      title={`${dark ? 'Light' : 'Dark'} theme (⇧D)`}
+      aria-pressed={dark}
+      onClick={() => store.toggleDesignTheme()}
+    >
+      {dark ? <Icon.Moon /> : <Icon.Sun />}
+    </button>
   )
 }
 
